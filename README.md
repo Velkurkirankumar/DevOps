@@ -1369,3 +1369,153 @@ jobs:
 - Terraform has its own language called as HCL (Hashicorp Configuration lanaguage)
 - New Trend: Tools like terraform, cloud have started offering CDKs where you can use any programming language for declarative approaches.
 
+
+
+# May 20
+
+# Terraform
+
+- [Terraform](https://developer.hashicorp.com/terraform) developed by Hashicorp is most widely infra provisioning tool.
+- Terraform is developed in Golang
+- Opentofu is a fork of Terraform
+
+#### How Terraform works
+- Terraform is a single executable.
+- Terraform uses Providers to interact with specific cloud / hypervisors
+- [Providers](https://registry.terraform.io/browse/providers) are not part of terraform installation, they are part of infra creation.
+
+| Provider Name         | Type              | Description / Use Case                                     |
+|-----------------------|-------------------|-------------------------------------------------------------|
+| AWS                   | Public Cloud      | Amazon Web Services: Compute, storage, networking, etc.     |
+| Azure                 | Public Cloud      | Microsoft Azure: IaaS, PaaS, SaaS services                  |
+| Google Cloud          | Public Cloud      | Google Cloud Platform: Compute, storage, analytics         |
+| Alibaba Cloud         | Public Cloud      | Alibaba Cloud: Cloud computing and data services           |
+| DigitalOcean          | Public Cloud      | Developer-focused cloud infrastructure                     |
+| VMware vSphere        | On-premises       | Virtualization platform for managing VMs                   |
+| OpenStack             | On-premises       | Open-source cloud platform for private clouds              |
+| Kubernetes            | Hybrid/On-premises| Container orchestration, can be on-prem or cloud           |
+| Helm                  | Hybrid/On-premises| Kubernetes package manager                                 |
+| Cloudflare            | SaaS/Edge         | CDN, DNS, and security services                            |
+| Datadog               | SaaS              | Monitoring and analytics platform                          |
+| GitHub                | SaaS              | Source code management and CI/CD                           |
+| GitLab                | SaaS              | DevOps platform for CI/CD and SCM                          |
+| Okta                  | SaaS              | Identity and access management                             |
+| Azure Active Directory| SaaS              | Microsoft identity and access management                   |
+| HashiCorp Vault       | Security          | Secrets management and data protection                     |
+| HashiCorp Consul      | Networking        | Service discovery and configuration                        |
+| F5                    | On-premises       | Application delivery networking                            |
+| Palo Alto Networks    | On-premises       | Network security (PAN-OS)                                  |
+| Cisco                 | On-premises       | Networking hardware and software                           |
+
+
+- Every Provider will have
+    - Resources: an infra element which we can manage from terraform
+    - DataSources
+- Arguments: on a general note in terraform arguments are inputs
+- Attributes: on a general note in terraform attributes are outputs
+
+![image](https://github.com/user-attachments/assets/45de9cad-0fe5-4a88-ba20-90bb750c8c7a)
+
+- To terraform we give a folder with .tf files as input
+- Example Terrafrom template
+
+```
+terraform {
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = "6.0.0-beta1"
+    }
+  }
+}
+
+provider "aws" {
+  # Configuration options
+  region = "ap-south-1"
+}
+
+
+resource "aws_vpc" "main" {
+  cidr_block = "10.10.0.0/16"
+  tags = {
+    Name = "layered-network"
+  }
+}
+```
+
+### Exercise
+- Findout documentation for the following
+    - aws ec2 instance terraform aws ec2
+
+![image](https://github.com/user-attachments/assets/524397e5-bc7f-4d3c-9e3c-73a84ce3c5b5)
+
+![image](https://github.com/user-attachments/assets/5b8e2f35-160b-4482-a33a-5d7fdd814c32)
+
+- azure storage account
+- gcp storage bucket
+- aws s3 bucket
+- aws eks
+- azure aks
+- Next Step:
+- Lets learn how to write terraform hashicorp configuration language
+
+# May 21
+
+### Writing Terraform Templates
+
+#### Installation
+- Windows
+    - Terminal Setup
+    - Git For Windows
+    - chocolatey or winget
+    - Visual Studio Code
+    - Terraform
+    - AWS CLI
+    - Azure CLI
+
+- Mac
+    - Homebrew
+    - Git brew install git
+    - Visual Studio Code brew install --cask visual-studio-code
+    - Terraform brew tap hashicorp/tap && brew install hashicorp/tap/terraform
+    - awscli brew install awscli
+    - azure cli brew install azure-cli
+
+### Writing templates
+- create a new folder
+- open this in visual studio code (Ensure Terraform extension is installed)
+- create a new file called as main.tf
+- Terraform uses Hashicorp Configuration language, Resources, Providers are Blocks
+
+```
+<block-type> <name> .. {
+
+}
+```
+- [Provider Block](https://developer.hashicorp.com/terraform/language/providers/configuration)
+
+```
+provider <name> {
+    arg1 = value
+    ..
+    ..
+    argn = value
+}
+```
+
+- [Resource Block](https://developer.hashicorp.com/terraform/language/resources/syntax)
+
+```
+resource <type> <name> {
+    arg1 = value
+    ..
+    ..
+    argn = value
+}
+```
+
+- When we pass arguments terraform has the following [data types](https://developer.hashicorp.com/terraform/language/expressions/types#types)
+
+## Configuring terraform to work with AWS
+## Configuring terraform to work with Azure
+
