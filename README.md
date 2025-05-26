@@ -1519,3 +1519,126 @@ resource <type> <name> {
 ## Configuring terraform to work with AWS
 ## Configuring terraform to work with Azure
 
+# May 22
+
+### Using Terraform to Create AWS S3 Bucket
+- Resource:
+    - S3 Bucket
+- Inputs required for resource:
+    - region (location)
+    - name
+- Try: Creating  S3 bucket manually
+
+### Configure AWS CLI Credentials
+- Terraform provider by default uses CLI Credentials
+- Watch classroom recording on how to create credentials
+- Ensure AWS CLI is installed
+- Once access key is generated execute aws configure on terminal
+
+### Lets write template
+- references
+    - [aws provider](https://registry.terraform.io/providers/hashicorp/aws/latest/docs)
+    - [s3 bucket resource docs](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket)
+      ![image](https://github.com/user-attachments/assets/e5dc2809-5ee9-4135-b14f-d62148f17400)
+
+- [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/afd1c8b2e9d741371a6836e353d61720666bc87e) for changes done
+
+### Terraform workflow
+
+![image](https://github.com/user-attachments/assets/004bc8bb-e9fa-4406-8f98-870db6a11989)
+
+### Terraform always tries to match your desired state
+- In Terraform we use declarative programming to define what we want (desired state)
+- Terraform will work to manage infrastructure to meet your desired state.
+
+# May 24
+
+### Terraform contd…
+#### Configuring Terraform to work with Azure
+- Terraform by default uses  Azure CLI Credentials
+- Once Azure CLI is installed. Launch Terminal and execute az login command
+- Azure has two providers
+    - [hashicorp](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs): this is what we will be using
+    - [microsoft](https://registry.terraform.io/providers/Azure/azapi/latest/docs)
+
+### Lets create a storage account in Azure
+- [Refer Here](https://learn.microsoft.com/en-us/azure/storage/common/storage-account-create?tabs=azure-portal) for quick start
+- Resources
+    - Resource Group:
+        - inputs:
+            - name
+            - location
+    - Storage Account
+- First we need to create [resource group](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group)
+- [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/aca736701c9e3b8ad6348ef2bd893d7a04a6bb89) for the work done
+
+### Order of Creation
+- In Terraform, Resources are created in parallel unless they are dependent on each other.
+- There are two ways of defining dependencies
+    - intrinsic/implicit
+    - extrinsic/explicit
+
+#### Resource name in terraform
+- This refers to pointing to a specific resource type.name
+```
+resource "azurerm_resource_group" "base" {
+    name = "fromtf1"
+    location = "centralindia"
+
+}
+
+# azurerm_resource_group.base
+```
+
+#### Explicit Dependency
+- Explicit dependecy can be added to a resource by using a meta argument called as depends_on
+```
+resource "azurerm_storage_account" "store" {
+    name = "fromtfltmay25"
+    resource_group_name = "fromtf1"
+    location = "centralindia"
+    account_tier = "Standard"
+    account_replication_type = "RAGRS"
+    # explicit dependency
+    depends_on = [ azurerm_resource_group.base ]
+
+}
+```
+
+- [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/40a80366ac57a9220489f0e7b48f4c5cb95e73b4) for the template with depends_on
+
+
+# May 25
+
+## Terraform contd
+#### Terraform console
+- [Refer Here](https://developer.hashicorp.com/terraform/cli/commands/console) for using terraform console
+- To launch terrform console, execute terraform console command in directory with .tf files
+
+#### Implicit depenedency
+- [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/a3b450ba69c94e7a6e59e3ab71aa6b169191edb8) for the changes
+- A resource will be dependent on other resource implicitly if the attributes of the other resource are used as arguments.
+
+### AWS: Create a VPC with 4 subnets
+- Overview
+![image](https://github.com/user-attachments/assets/b55b7b3a-5671-448e-9851-4323fb8dfde2)
+- Manual steps
+
+#### Style Guide & Linting in terraform
+- Lets follow google style guide for terraform [Refer Here](https://cloud.google.com/docs/terraform/best-practices/general-style-structure)
+- terraform fmt or format document in vscode
+- updated workflow
+    - init
+    -  fmt
+    - validate
+    - apply
+    - destroy
+- We would be creating the following files in terraform template
+    - providers.tf: This file will have all the necessary stuff for configuring providers
+    - main.tf: This is where we start with declaring resources
+- [Tags for aws](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/guides/resource-tagging)
+- [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/3a2d6cf36f7ff32125c2a827dce9f65093d8a57c) for the changes done
+
+#### Exercise:
+-Create a network (Virtual network) in central india with 4 subnets
+- note: in  azure there is no need to provide zone while creating subnet
