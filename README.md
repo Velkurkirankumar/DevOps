@@ -1642,3 +1642,34 @@ resource "azurerm_storage_account" "store" {
 #### Exercise:
 -Create a network (Virtual network) in central india with 4 subnets
 - note: in  azure there is no need to provide zone while creating subnet
+
+# May 28
+
+## Terraform contd
+- AWS: Create a VPC with 4 subnets revisited
+- Overview:
+![image](https://github.com/user-attachments/assets/aeccccb0-34d5-448f-a516-81107efe5c7d)
+
+#### Variables
+- [Terraform variables](https://developer.hashicorp.com/terraform/language/values/variables) allows users to pass the values during execution
+- Variable block supports the arguments as [listed here](https://developer.hashicorp.com/terraform/language/values/variables#arguments)
+- syntax
+```
+variable <name> {
+    type = 
+}
+```
+
+- Generally as per google’s style guide we create all the variables in variables.tf or inputs.tf
+- To use the variable the syntax is var.<name>
+- [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/3ab288f36b69acfd6ce7ebc64321e0d8534fa4ca) for the variables added to aws vpc and 4 subnets
+- We can create a file <name>.tfvars where we can apply all the values and pass this file during terraform apply
+- Generally we will have <environment>.tfvars
+- [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/2ba72369db00c429e514e93aea4d9e617bacf10e) for changes done
+- Few variables to pass
+```terraform apply -var var1=value1 -var var2=value2```
+- many variables to pass, create a .tfvars file such as dev.tfvars
+```terraform apply -var-file="dev.tfvars"```
+- [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/b2cccf61631a0903bd9e667559e5f4a010189f90) for variables with object types
+
+#### Go through the template and lets discuss about any unknows in next 5 mins
