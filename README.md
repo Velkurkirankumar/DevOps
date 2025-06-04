@@ -1673,3 +1673,130 @@ variable <name> {
 - [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/b2cccf61631a0903bd9e667559e5f4a010189f90) for variables with object types
 
 #### Go through the template and lets discuss about any unknows in next 5 mins
+
+# May 31
+
+### Terraform functions
+- Terraform offers [functions](https://developer.hashicorp.com/terraform/language/functions)
+
+#### Terraform meta argument count
+- [Refer Here](https://developer.hashicorp.com/terraform/language/meta-arguments/count) for count which helps in creating multiple resources.
+- [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/6c98e8baf831e71b17be39b0f0fb514f0b5698a5) for the changes done to create multiple resources based on variables passed using count function
+
+### Terraform expressions
+#### Terraform conditional creation of resources
+- We can use count to do this
+```
+resource 'xxxxx' 'yy' {
+    count  = 0
+}
+```
+- [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/6bdb20f4f380bf51397a3ce952434c153f1f08ce) for the changes done.
+
+#### Terraform locals
+- [Refer Here](https://developer.hashicorp.com/terraform/language/values/locals) for official docs
+- [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/2359b401a924a427a61e9795847e13c595a74036) for changes
+#### Terraform outputs
+- [Refer Here](https://developer.hashicorp.com/terraform/language/values/outputs)
+- [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/431bc3acb2fb7f779cb680a3716b18ff2f45496e) for the changes done
+
+![image](https://github.com/user-attachments/assets/f162c927-d2aa-4167-bc44-49ec80352ea0)
+
+#### Terraform block
+- [Refer Here](https://developer.hashicorp.com/terraform/language/terraform) for official docs of terraform block
+- [Versioning constraints](https://developer.hashicorp.com/terraform/language/expressions/version-constraints)
+
+# June 1
+
+### Datasources
+- Datasources are used to fetch information about resources.
+- Datasource will not create any thing, rather it fetches information and [Refer Here](https://developer.hashicorp.com/terraform/language/data-sources) for official docs
+- [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/ab0a4996db8fc551de5d89db092072b0162a3995) for datasources example
+
+#### How does terraform know what it has created
+- Terraform on execution will create a file called as terraform.tfstate locally in the same directory where the terraform is executed from.
+- This state file contains the information about the resources created in this execution
+- Terraform during execution, will check if there is a state file. If the state file exists,
+    - it takes backup of the current state file
+    - it executes the refresh internally to get the current state
+    - difference between what we want vs current state becomes plan
+    - Terraform executes the plan
+- Terraform apply => refresh + plan + apply
+- Since the state file is present in the local folder, to make the template available for multi users, it is recommended to use Terrform Backends (Common state storage )
+
+![image](https://github.com/user-attachments/assets/9e259db3-ba73-44ab-963d-59c08be62806)
+
+### Activity 1: ntier in Azure
+- Overview
+![image](https://github.com/user-attachments/assets/8a00a9f7-b610-4e9a-976d-b6dd7dd421cf)
+
+- Manual steps: Watch classroom recording
+- summary
+    - create resource group
+    - create virtual network with subnets
+    - create a network resource groups
+    - create virtual machines
+    - login into vms and install necessary softwares
+- create resource group [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/3f46f0ed72933af73987bdec5db7442fc327054e) for changes.
+- As a best practice, lets start using [terrascan.](https://github.com/tenable/terrascan)
+
+# June 2
+
+### Activity 1: contd
+- [Refer Here](https://learn.microsoft.com/en-us/azure/virtual-network/quickstart-create-virtual-network?tabs=portal) for virtual network creation
+- Creating virtual network with subnets and web security group with rules [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/b3e65166f86e0a3e64038459c4e4ec0f6703f793)
+- using for each for security group rules [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/772a7872bfa1a598f929648541328836612f4f1b) for changes
+- [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/c114160433e9ea6091979e182de85f5251e1170e) for optional values in variables.
+
+# June 3
+
+### Activity 1 contd
+
+##### Lets add network interface
+- Network interface requires
+    - subnet
+    - public ip
+    - nsg
+    ![image](https://github.com/user-attachments/assets/2d3d16d2-50ac-423b-8d6f-24d6b497ce20)
+
+- As of now, we have subnets, nsg, so lets create a public ip address
+- [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/d2a13601da8331c2b95c73ba2148d6751f6cef61#diff-15ca888ab7a48c326f2d26cd052a942b8683a27bced93ac3e1245672ae2030ac) for the changes.
+- Now lets try adding the network interface [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/bf418b7adb596ee72c82ce98a4a61a619315cf9f) for changes
+
+##### Exercise:
+- Create a linux vm with username and password
+- Now try creating app and db servers
+
+# June 4
+
+### Activity 1 contd
+- Creating a linux vm in azure requires
+    - network interface with nsg connected to a subnet (optional public ip)
+    - credentials:
+        - username/password
+        - username/key
+    - Image: os
+```
+publisher = "Canonical"
+offer = "0001-com-ubuntu-server-jammy"
+sku = "22_04-lts-gen2"
+version = "latest"
+```
+- [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/d08dba6cb9a5abda28cb9a1b9d92b562f379600b) for the changes done to create virtual machine
+
+#### Tainting terraform resources
+- Tainting a terraform resources is marking for the resource to replaced during next terraform apply.
+
+#### Installing softwares in virtual machine
+- Option 1: Userdata/Custom Data from cloud providers
+- Option 2: [Terraform provisioning](https://developer.hashicorp.com/terraform/language/resources/provisioners/syntax)
+
+### Terraform Provisioners
+- Provisioners can execute some extra stuff in virtual machines.
+- Terraform has 3 types of provisioners
+    - file
+    - local-exec
+    - remote-exec
+- For the remote connections provisioner will have a [connetion object](https://developer.hashicorp.com/terraform/language/resources/provisioners/connection)
+- [Refer Here](https://developer.hashicorp.com/terraform/language/resources/provisioners/connection) also
+- [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/06e86750f4346ba15af7e7bf440adc637f4e295f) for the changes done to include a provisioner.
