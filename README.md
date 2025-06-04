@@ -1327,7 +1327,7 @@ jobs:
 
 # May 19
 
-## Terraform
+# Terraform
 
 ### Why Do We need Terraform (Infra Provisioning)
 
@@ -1728,6 +1728,7 @@ resource 'xxxxx' 'yy' {
 
 ### Activity 1: ntier in Azure
 - Overview
+
 ![image](https://github.com/user-attachments/assets/8a00a9f7-b610-4e9a-976d-b6dd7dd421cf)
 
 - Manual steps: Watch classroom recording
@@ -1757,7 +1758,8 @@ resource 'xxxxx' 'yy' {
     - subnet
     - public ip
     - nsg
-    ![image](https://github.com/user-attachments/assets/2d3d16d2-50ac-423b-8d6f-24d6b497ce20)
+
+![image](https://github.com/user-attachments/assets/2d3d16d2-50ac-423b-8d6f-24d6b497ce20)
 
 - As of now, we have subnets, nsg, so lets create a public ip address
 - [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/d2a13601da8331c2b95c73ba2148d6751f6cef61#diff-15ca888ab7a48c326f2d26cd052a942b8683a27bced93ac3e1245672ae2030ac) for the changes.
