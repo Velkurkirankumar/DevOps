@@ -1743,7 +1743,7 @@ resource 'xxxxx' 'yy' {
 
 # June 2
 
-### Activity 1: contd
+#### Activity 1: contd
 - [Refer Here](https://learn.microsoft.com/en-us/azure/virtual-network/quickstart-create-virtual-network?tabs=portal) for virtual network creation
 - Creating virtual network with subnets and web security group with rules [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/b3e65166f86e0a3e64038459c4e4ec0f6703f793)
 - using for each for security group rules [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/772a7872bfa1a598f929648541328836612f4f1b) for changes
@@ -1751,7 +1751,7 @@ resource 'xxxxx' 'yy' {
 
 # June 3
 
-### Activity 1 contd
+#### Activity 1 contd
 
 ##### Lets add network interface
 - Network interface requires
@@ -1771,7 +1771,7 @@ resource 'xxxxx' 'yy' {
 
 # June 4
 
-### Activity 1 contd
+#### Activity 1 contd
 - Creating a linux vm in azure requires
     - network interface with nsg connected to a subnet (optional public ip)
     - credentials:
@@ -1802,3 +1802,108 @@ version = "latest"
 - For the remote connections provisioner will have a [connetion object](https://developer.hashicorp.com/terraform/language/resources/provisioners/connection)
 - [Refer Here](https://developer.hashicorp.com/terraform/language/resources/provisioners/connection) also
 - [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/06e86750f4346ba15af7e7bf440adc637f4e295f) for the changes done to include a provisioner.
+
+# June 5
+
+### Terraform contd
+#### Activity 1: contd
+- Terraform has [null resource](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource)
+- Now if we add provisioning in null resource and whenever we want changes if we can replace null resource, we can execute scripts on demand
+- [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/0b7ec4e48aa9a6358d20f4a17d1e57f7deb866ad) for the changes done.
+
+##### Exercise:
+- create an app server and instal tomcat in it
+- create a db serever and install mysql in it
+
+# June 6
+
+#### Activity -2 : Creating an ntier application in AWS
+- Overview
+
+![image](https://github.com/user-attachments/assets/fbfa75a5-1a0a-45b1-8b80-ed8b2d2d053e)
+
+- Manual steps
+- Create a vpc
+    - cidr
+    - region
+- Create six subnets
+    - zone
+    - cidr
+- Create an internet gateway and attach to vpc
+- modify default route table to add route to internet gateway
+    - route:
+        - cidr: 0.0.0.0/0
+        - forward to internet gateway
+- add 3 security groups for web, app, db servers
+- Now import a key pair
+- create an ec2 instance with subnet selected, AMI (os image), key pair with public ip enabled (user data-> script to install during creation)
+    - AMI id
+- [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/f5e6ec20bc8a4eb0420438858c23f0463e4fe899) for the basic template
+- Exercise: Create till security groups in terraform
+
+# June 8
+
+#### Activity 2 contd
+- Added changes to create vpc with subnets, associate internet gateway and configure default rout table [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/0fdb7f4faa5f73882f50f15b4cb007d12ece969e)
+- Execute the current template in your account using terraform and Create
+    - web security group (in a reusable way)
+- [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/bbc374e5199619e40898c30374898026d0779e8f) for the changes
+
+- Exercise:
+    - Add app and db server
+    - create variables for web server and key pair
+
+# June 9
+
+### Terraform Modules
+- [Modules](https://developer.hashicorp.com/terraform/language/modules) are reusable terraform templates
+- Modules will not have providers and can be called by multiple templates
+
+![image](https://github.com/user-attachments/assets/377f9a3b-44c4-4c59-a6d7-5a225add605a)
+
+- Modules can be present in [(module sources)](https://developer.hashicorp.com/terraform/language/modules/sources)
+    - local folder
+    - git
+    - Terraform Cloud
+- To call a module we use a module block
+
+```
+module <name> {
+    source = "<module-source>"
+    arg1 = value1
+    arg2 = value2
+    ...
+    argn = valuen
+}
+```
+
+- To create a module, just create a new folder with some name, ensure you have
+    - resources
+    - variables (inputs/arguments)
+    - outputs (outputs/attributes)
+- Added module for security group [locally](https://github.com/asquarezone/NewTerraformZone/commit/dc580552fec42e718260ce06ad08e731c3971a9d)
+- [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/205b50b16de87e9bfc18ef881034fdfbb0c0f63d) for modules for vpc, security group
+- Terraform also has a registry where lots of modules are already [available](https://registry.terraform.io/browse/modules)
+- [Refer Here](https://registry.terraform.io/modules/terraform-aws-modules/vpc/aws/latest) for a community module on vpc and try creating vpc with this module
+
+```
+module "vpc" {
+  source = "terraform-aws-modules/vpc/aws"
+  version = "5.21.0"
+
+  name = "my-vpc"
+  cidr = "10.0.0.0/16"
+
+  azs             = ["ap-south-1a", "ap-south-1b"]
+  private_subnets = ["10.0.1.0/24", "10.0.2.0/24"]
+  public_subnets  = ["10.0.101.0/24", "10.0.102.0/24"]
+
+  enable_nat_gateway = false
+  enable_vpn_gateway = false
+
+  tags = {
+    Terraform = "true"
+    Environment = "dev"
+  }
+}
+```
