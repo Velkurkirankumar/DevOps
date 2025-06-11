@@ -1907,3 +1907,44 @@ module "vpc" {
   }
 }
 ```
+
+# June 10
+
+### Hosting Modules on Git
+- [Refer Here](https://github.com/asquarezone/TerraformModules) for the location where modules are hosted
+- [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/b0956e776a32443a948c6fdd879bee8a57945723) for the changes done to use modules hosted on git.
+
+### Sharing states with Backend
+- By default the backend is local, so when we execute terraform it creates the state terraform.tfstate file in the same folder.
+- This will not work for multi user executions.
+
+![image](https://github.com/user-attachments/assets/b92257cb-64ae-40e6-91f7-a9b64622ff90)
+
+- The better idea would be to have the state stored in a central and accessible locations
+
+![image](https://github.com/user-attachments/assets/9ad4429f-ba13-44af-b339-3a26acb165e5)
+
+![image](https://github.com/user-attachments/assets/1a929bc6-c170-47b6-8478-8e91afb8f474)
+
+- For creation of buckets etc watch classroom video
+- [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/4f9bf4e94c2c11976d953a0bdd68a750c01943e3) for the changes done to add state
+
+![image](https://github.com/user-attachments/assets/66768386-7287-4bec-8c76-e17ce67643f0)
+
+
+# June 11
+
+### Terraform Azure Backend
+- [Azure RM backend](https://developer.hashicorp.com/terraform/language/backend/azurerm)
+- [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/437054a087345c8ad604d1e3da60bf44603aa13e) for the changes done to add azurerm backend
+- Azurerm backend supports locking by default which will allow only one user to execute resources
+- [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/a413cceecbeda02e241504f19e1b53288f69aa92) for the changes done to implement locking in AWS S3 backend 
+
+### Terraform Workspaces
+- Workspace enables multiple environments.
+- Note: all these days we have been using workspaces unknowingly. The default workspace in terraform is called as default
+- [Refer Here](https://developer.hashicorp.com/terraform/language/state/workspaces) for official docs of Terraform Workspace
+- Workspace works with backend and it will have state file per workspace.
+- [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/85055cacf9e423a3898484ea73c345ca808c62e4) for workspace changes done
+- We had create two additional workspace dev & qa
+
