@@ -1948,3 +1948,41 @@ module "vpc" {
 - [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/85055cacf9e423a3898484ea73c345ca808c62e4) for workspace changes done
 - We had create two additional workspace dev & qa
 
+# June 13
+
+## Terraform state import
+- importing existing resources into terraform [Refer Here](https://developer.hashicorp.com/terraform/language/state/import) and [Refer Here](https://developer.hashicorp.com/terraform/language/import)
+- Note: Watch classroom recording for steps
+- [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/1155f41aceab272ebff5bf4c1c68497abec30428) for the template created.
+
+# June 14
+
+## Terraform meta arguments
+- [lifecycle](https://developer.hashicorp.com/terraform/language/meta-arguments/lifecycle): This has two arguments
+    - prevent_destroy
+    - create_before_destroy
+
+```
+resource "aws_vpc" "nop" {
+  cidr_block           = "10.10.0.0/16"
+  enable_dns_hostnames = true
+  enable_dns_support   = true
+  tags = {
+    "Name" = "nop-vpc-dev"
+  }
+  lifecycle {
+    prevent_destroy = true
+    create_before_destroy = true
+  }
+}
+```
+
+- [provider](https://developer.hashicorp.com/terraform/language/meta-arguments/resource-provider)
+    - [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/efce217e825f32c62ed72306f58e5d5d096e742e) for using multiple providers and provider meta argument.
+
+#### AKS-store Deployment
+- [Refer Here](https://github.com/Azure-Samples/aks-store-demo) for aks store
+- To deploy this application we need a kubernetes cluster
+- Lets understand how to create a kubernetes cluster on  Azure (AKS)
+- [Refer Here](https://learn.microsoft.com/en-us/azure/aks/learn/quick-kubernetes-deploy-portal?tabs=azure-cli) for steps to create AKS cluster
+- [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/edafac01bee62cb9fbbd2af620682901a12d822c) for the changes done to create aks cluster with kubeconfig.
