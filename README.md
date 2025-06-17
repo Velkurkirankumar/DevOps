@@ -1325,7 +1325,7 @@ jobs:
     - bare clone => local repo + remote connection
 
 
-# May 19
+# May 19 (Terraform)
 
 # Terraform
 
@@ -1986,3 +1986,42 @@ resource "aws_vpc" "nop" {
 - Lets understand how to create a kubernetes cluster on  Azure (AKS)
 - [Refer Here](https://learn.microsoft.com/en-us/azure/aks/learn/quick-kubernetes-deploy-portal?tabs=azure-cli) for steps to create AKS cluster
 - [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/edafac01bee62cb9fbbd2af620682901a12d822c) for the changes done to create aks cluster with kubeconfig.
+
+# June 15
+
+## Terraform cloud
+- Terraform cloud supports features such as
+    - direct vcs integration
+    - user control
+    - remote state (backend) and workspace support
+- [Refer Here](https://app.terraform.io/public/signup/account) for signing up for a free account
+- [Refer Here](https://github.com/dummyrepos/experiment-tfcloud) for the dummy repo created
+
+### Dynamic Block
+- [Refer Here](https://developer.hashicorp.com/terraform/language/expressions/dynamic-blocks) for official docs
+- [Refer Here](https://github.com/asquarezone/NewTerraformZone/commit/1ba5b62bdf3c61b50f048dd04b8af8d3d603e678) for the changes which include dynamic block to create ingress rules in security
+- Avoid dynamic blocks as they are less readable.
+
+
+# June 17 (Docker)
+
+### Possible Application Execution Options
+- Consider any web application & we need to run it
+- To run this application we have the following possibilities
+### Physical server
+- Ensure you have right sized physical servers with necessary os in it
+- Ensure networking is established
+
+![image](https://github.com/user-attachments/assets/45ff019a-d277-41d5-a660-1ef506c92e53)
+
+- Capex (upfront investment) for a servers
+- Opex (ongoing)
+
+#### Hypervisors
+
+![image](https://github.com/user-attachments/assets/821c23b2-01e1-445c-bc74-064712dd9d64)
+
+#### Containers
+
+![image](https://github.com/user-attachments/assets/f7e95ba9-caba-4ff8-b389-31bbd8621933)
+
