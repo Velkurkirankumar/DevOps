@@ -2025,3 +2025,55 @@ resource "aws_vpc" "nop" {
 
 ![image](https://github.com/user-attachments/assets/f7e95ba9-caba-4ff8-b389-31bbd8621933)
 
+# June 18
+
+### Containers contd…
+- Lets run a java based application
+- To run a java based application we need java to be installed
+### Physical System
+- We have used a springpetclinic application and deployed into physical system
+
+![image](https://github.com/user-attachments/assets/b44e77b3-eeee-4e0d-9fa1-84a35d439f5e)
+
+### Virtual Machine
+- Lets use Azure To create a linux (Ubuntu) and setup this application
+
+### Container
+- We used docker playground and used an existing image to create a container
+
+#### What should i run in a contaner
+- Ideally run the server side components in a container.
+
+#### How is container working at a high level
+- Docker when installed on a larger note has two major components
+    - client:
+        - This is a command line tool which can interact with daemon/engine
+    - daemon/engine:
+        - This is responsible of container management
+- Users execute docker commands using client and client interacts with daemon to get the job done
+
+#### Creating a container
+- Command docker run nginx -d means create a container, lets examine what happens now
+    - 1. client sends request to daemon/engine
+    - 2. daemon checks the local repo for the image, if not found tries to download from registry and even if not found throws error
+    - 3. once the image is available a container is created using image and allocating resources (cpu, ram, ntework)
+- Registry: A registry is collection of container images and each container is represented as repository.
+    - container image has a repo name and version which is called as tag.
+    - docker image <repo-name>:<tag>
+    - if u dont pass tag latest is its default value
+    - when we said docker run nginx => docker run nginx:latest
+- Repo names have conventions depending on which registry you are using
+- docker hub is the default registry.
+- Other registries are also available
+    - artifactory
+    - azure container registry
+    - aws elastic container registry
+
+…
+- Docker hub convention
+    - official images: they directly have names
+        - nginx
+    - Trusted Partner: This is an organization trusted by docker [publishing images](https://hub.docker.com/search?badges=verified_publisher)
+    - your(account) images: These are repos built by us <account-name>/<app-name> shaikkhajaibrahim/spc-gcp
+#### First steps into docker/containers
+- Containerize applications which is ensuring your application has a image (docker image/container image).
