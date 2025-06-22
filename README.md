@@ -2077,3 +2077,164 @@ resource "aws_vpc" "nop" {
     - your(account) images: These are repos built by us <account-name>/<app-name> shaikkhajaibrahim/spc-gcp
 #### First steps into docker/containers
 - Containerize applications which is ensuring your application has a image (docker image/container image).
+
+# June 19
+
+## Basic container operations
+- Creating a docker container in docker playground for this we need to create account in [docker hub](https://hub.docker.com/)
+- Container lifecycle
+
+![image](https://github.com/user-attachments/assets/1533911a-4347-4c42-878a-e9f0161fdf2c)
+
+- Container operations
+    - Create
+    - start
+    - run (create + start)
+    - stop
+    - pause
+    - unpause
+    - remove/delete
+
+- [docker cheatsheet](https://docs.docker.com/get-started/docker_cheatsheet.pdf)
+- Create a container and start it
+
+```
+docker container run -d httpd:latest
+
+docker run -d httpd:latest
+```
+
+![image](https://github.com/user-attachments/assets/123965c2-d114-410d-bfe0-c85720206f50)
+
+- To list all the running containers
+```
+docker ps
+docker container ls
+```
+
+![image](https://github.com/user-attachments/assets/94453c2b-37db-4283-85aa-d44ca093a950)
+
+- Every container when created gets a unique container id and if you have not passed the name docker randomly assigns a name
+- So lets create a container with a name
+```
+docker container run -d httpd:latest
+docker run -d httpd:latest
+```
+
+![image](https://github.com/user-attachments/assets/473a0f0f-1612-4611-ade8-ff6b4a715593)
+
+- * To manage the container we can pass container id or name
+- * Lets stop a container
+
+```
+docker stop <container-id|name>
+docker container stop <container-id|name>
+```
+
+![image](https://github.com/user-attachments/assets/917860ff-6063-4707-a157-7b852c6ab2f1)
+
+- * lets start the containers
+
+![image](https://github.com/user-attachments/assets/5a4c8693-ac81-4175-b3c3-2e75f4356450)
+
+- * Let try removing the container
+
+![image](https://github.com/user-attachments/assets/4feb8992-6b0f-411f-ac07-018da872d765)
+
+### Examine containers
+- Lets create two containers web1 and web2
+
+![image](https://github.com/user-attachments/assets/14e2d2c3-031b-4e88-8948-4b08d213db32)
+
+![image](https://github.com/user-attachments/assets/52273e76-3863-4f0f-bf9e-78a929fccb72)
+
+- watch classroom recording for remaining examination.
+### Exercise:
+- What happens when you start a linux machine in terms of processes what gets launched first
+
+# June 21
+
+## Docker contd
+#### Story of dot-cloud
+- This was a sanfransico based startup working on PaaS products
+- For their internal use they have created a product which is called as docker (dock worker) and open sourced this
+- This was [first demo](https://www.youtube.com/watch?v=9xciauwbsuo)
+- This was very well apprecieted and the companies name was changed to Docker Inc.
+- Docker democratized containers.
+
+### How containers work internally
+- Refer Here for internals
+- Three important linux concepts make this happen
+    - cgroups
+    - capabilities
+    - namespaces
+
+#### Terms
+- Stateful vs Stateless
+- Containers work seamless for Stateless and for stateful to preserve data we need to do few extra steps.
+
+# June 22
+
+## Microservices
+- Microservice is a smaller and indivudually runnable service which can be deployed independently
+
+![image](https://github.com/user-attachments/assets/327f6b34-b65e-4515-8ff5-a224dfe87a3c)
+
+#### Next Steps
+- containerizing your application.
+- understanding
+- network
+- storage
+- resources
+- best practices
+- Using orchestration to deploy microservices and run them effeciently
+
+#### Setup
+- We will setup the docker on Linux Machine
+- SSH into linux machine (ubuntu)
+```
+curl -fsSL https://get.docker.com -o install-docker.sh
+sh install-docker.sh
+```
+
+- once the docker installed add your current user to docker group
+```
+sudo usermod -aG docker <user-name>
+# sudo usermod -aG docker ubuntu
+```
+- After this exit, relogin and execute docker info
+
+![image](https://github.com/user-attachments/assets/aeb40f0b-b4ef-4b76-ac1a-8b9be2a76d3a)
+
+### Containerizing applications
+- I want to run a simple website
+- Our webdesigner has created the following design Refer Here
+- Findout how to deploy this to a server.
+- To deploy a website, we need webserver
+- we have two popular flavors
+    - apache
+    - nginx
+- Manual steps:
+
+```
+sudo apt update
+sudo apt install nginx unzip -y
+wget https://templatemo.com/tm-zip-files-2020/templatemo_591_villa_agency.zip
+unzip templatemo_591_villa_agency.zip
+cd templatemo_591_villa_agency/
+sudo cp  --recursive . /var/www/html/
+```
+
+- Access your server by ip http://<server-ip>
+
+![image](https://github.com/user-attachments/assets/aa7513ed-1b16-40b8-986d-e7eb77a2e41e)
+
+- What is needed to run this application
+    - nginx
+    - website
+- How to access your application http://<ipaddress>:80
+- Containerizing application can be done in two ways
+    - creating a container and manually deploying application (not recommended)
+    - Write Dockerfile
+- Option 1: Create image manually
+    - Create a container in interactive mode and run necessary commands to deploy your application
