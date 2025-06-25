@@ -2238,3 +2238,164 @@ sudo cp  --recursive . /var/www/html/
     - Write Dockerfile
 - Option 1: Create image manually
     - Create a container in interactive mode and run necessary commands to deploy your application
+
+# June 23
+
+# Docker
+### Architecture
+- [Refer Here](https://directdevops.blog/2019/01/31/docker-internals/) and look into underlying components
+
+![image](https://github.com/user-attachments/assets/d9017f25-3beb-49db-8b06-65b0bae1ec1a)
+
+### Running & Executing in containers in different modes
+- Containers by default run in attached mode which displys in the stdout, stderr in the current terminal
+- ```docker run --name web1 nginx```
+- Containers can be run in the background without blocking terminal which is referred as detached mode, which returns a container id
+- ```docker run -d --name web2 nginx```
+
+![image](https://github.com/user-attachments/assets/a4887d70-074b-4b41-a550-8762ebebda5f)
+
+- * Other mode is interactive terminal, when you want to run a shell (we will discuss further later)
+- * Once the container is running we can execute commands in the container
+- * docker exec
+- * docker exec -it <bash|terminal>
+
+### Containerizing applications using Dockerfile
+- [Dockerfile](https://docs.docker.com/reference/dockerfile/) is a text file which contains instructions to create docker image
+- Instructions will have the following form
+- ```<INSTRUCTION> <VALUE>```
+- Dockerfile has lots of instructions supported
+
+![image](https://github.com/user-attachments/assets/83ab6c8f-ec01-4122-ad4c-c8522e37b019)
+
+- Lets define some popular instructions
+    - FROM
+    - RUN
+    - ADD | COPY
+    - CMD
+    - EXPOSE
+    - LABEL
+- FROM: this instruction defines the base image
+- LABEL: This is used to add metadata
+- RUN: This runs a command during image building
+- CMD: This command executes when creating a container
+- ADD | COPY: They are used to copy files or directories into image
+- EXPOSE: This publishes the port on which your application is accessed.
+
+##### Lets containerize the website used in previous class
+- Refer Here for previous classroom notes
+- Create a new folder called website and create a new file in this folder with name Dockerfile
+- Refer Here for the changes done
+- To build the docker ensure your are in the folder where Dockerfile exists & Execute
+- ```docker image build -t villa:1.0 .```
+
+![image](https://github.com/user-attachments/assets/d104c3bf-adb6-4ea5-b9dd-3e402f2eed02)
+
+- The Dockerfile used is
+```
+FROM nginx
+ADD html/ /usr/share/nginx/html
+EXPOSE 80
+```
+- Lets containerize the application
+- [Refer Here](https://referenceappslt.s3.ap-south-1.amazonaws.com/spring-petclinic-3.3.0-SNAPSHOT.jar) for the spring pet clinic
+- The manual step to run this application is
+    - Ensure jdk 17 is installed
+    - java -jar spring-petclinic-3.3.0-SNAPSHOT.jar is the command to start the application
+    - This application runs on port 8080
+- Approximate Dockerfile
+```
+FROM openjdk:17
+ADD https://referenceappslt.s3.ap-south-1.amazonaws.com/spring-petclinic-3.3.0-SNAPSHOT.jar /spring-petclinic-3.3.0-SNAPSHOT.jar
+EXPOSE 8080
+```
+
+# June 24
+
+## Docker contd
+#### Dockerfile
+- Dockerfile has instructions to build a docker image
+#### FROM
+- This helps in selecting a base image
+- Experiments
+    - Exploring options of FROM
+    - choosing different base images
+##### Experiment 1
+- Lets just add FROM statement in Dockerfile
+- ```FROM eclipse-temurin:17-jdk```
+- pull the base image docker image pull eclipse-temurin:17-jdk and verify images docker image ls
+
+![image](https://github.com/user-attachments/assets/04bc20b5-69b3-4d5e-bb68-1818a0aa8c3d)
+
+- Now lets build image
+
+![image](https://github.com/user-attachments/assets/c3a3b7e3-cfbf-4483-a114-8334282423d1)
+
+- Now lets add metadata
+```
+FROM eclipse-temurin:17-jdk
+LABEL author="khaja"
+```
+
+![image](https://github.com/user-attachments/assets/875a4147-c2f4-488a-86e0-4abbe26f287d)
+
+- There is a base image called as scratch which is empty
+- Platforms:
+    - amd
+    - arm
+
+![image](https://github.com/user-attachments/assets/4dd648b9-14b4-441f-b887-44241625e360)
+
+#### RUN
+- [Run](https://docs.docker.com/reference/dockerfile/#run) instruction executes the command during image building
+- Consider the following Dockerfile
+```
+FROM ubuntu:24.04
+LABEL author="khaja"
+LABEL project="classroom"
+RUN apt update &&
+    apt install openjdk-17-jdk -y
+```
+
+![image](https://github.com/user-attachments/assets/5c7a5d27-73fc-4bb0-b359-f5e977ae7c3f)
+
+### ADD or COPY
+- [ADD](https://docs.docker.com/reference/dockerfile/#add) can copy files from local as well as web into docker image
+- [COPY](https://docs.docker.com/reference/dockerfile/#copy) can copy the local files or folders into docker image
+- Sample Dockerfile
+
+```
+FROM ubuntu:24.04
+LABEL author="khaja"
+LABEL project="classroom"
+RUN apt update && \
+    apt install openjdk-17-jdk -y
+
+ADD https://referenceappslt.s3.ap-south-1.amazonaws.com/spring-petclinic-3.3.0-SNAPSHOT.jar /spring-petclinic-3.3.0-SNAPSHOT.jar
+```
+
+### ENTRYPOINT/CMD
+- This is used to start the application
+##### Note
+- Remove all images docker image rm -f $(docker image ls -q)
+- When we create a container, container searches for start up command (CMD) if not found searches in base image startup
+- container is running as long as startup command is in running state
+
+# June 25
+
+### Slim images
+#### Java Application that uses Spring-boot
+- To run spring boot application we require JAVA JDK and a jar file
+- We have build the package locally
+- using the dockerfile in the changeset [Refer Here](https://github.com/dummyrepos/spring-petclinic-docker-june-25/commit/1a1880ffd02d22f79c062920276c2ffc19dfd914) we have built the docker image which copies the jar file into docker image
+- [Refer Here](https://github.com/dummyrepos/spring-petclinic-docker-june-25/commit/f9829c54a6313b1d3fa4392a6cb8bdaf11600ea8) for the changes to use the slim version or alpine version.
+
+- Best Practices:
+    - It is not recommended to run your application as root user.
+    - It is not recommened to run your applications from root directory
+- From now on lets always have application directory
+- [WORKDIR](https://docs.docker.com/reference/dockerfile/#workdir)
+- [Refer Here](https://github.com/dummyrepos/spring-petclinic-docker-june-25/commit/6ea54f3a0dd585dd2f5f28a6376960a3756da954) for the changes to include WORKDIR
+- [USER instruction](https://docs.docker.com/reference/dockerfile/#user) will set the user
+- [Refer Here](https://github.com/dummyrepos/spring-petclinic-docker-june-25/commit/1df8c3e56aa2a6436f1892e79c1ac8bd93da9921) for the changes that create a user
+
