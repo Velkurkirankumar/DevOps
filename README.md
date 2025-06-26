@@ -2399,3 +2399,89 @@ ADD https://referenceappslt.s3.ap-south-1.amazonaws.com/spring-petclinic-3.3.0-S
 - [USER instruction](https://docs.docker.com/reference/dockerfile/#user) will set the user
 - [Refer Here](https://github.com/dummyrepos/spring-petclinic-docker-june-25/commit/1df8c3e56aa2a6436f1892e79c1ac8bd93da9921) for the changes that create a user
 
+# June 26
+
+### Dockerfile contd
+#### Multi-staged docker build
+- Multi-staged docker build involved building image in different stages
+- each stage has its own from instruction and only last stage is your application image
+- Lets look at sample
+
+```
+FROM <image> as build
+...
+...
+
+FROM <image> as test
+...
+...
+
+FROM <image>
+...
+...
+```
+
+- This requires copying files from local or git into image
+
+#### Samples
+- Lets have a single stage where we copy the code into docker iamge
+- Cloning code from git into image ADD https://github.com/dummyrepos/spring-petclinic-docker-june-25.git /usr/share/spc or we can copy the code from local folder into image ADD . /usr/share/spc
+- Generally when we are building the image we might not require all the files of local folder into image, for that we create a file called as .dockerignore and specify all files and folder either - directly or by patterns which we donot want to copy.
+- Sample .dockerignore
+```
+.git/
+.git*
+k8s/
+target/*
+**/Dockerfile
+**/docker-compose.yml
+# Build output and cache directories
+target/
+build/
+.gradle/
+out/
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+
+# Version control
+.git/
+.gitignore
+
+# Environment and configuration files (often sensitive)
+.env
+*.properties
+*.yml
+*.yaml
+
+# Logs and temp files
+*.log
+tmp/
+
+
+# OS-specific files
+.DS_Store
+```
+
+##### Now lets have our first stage where we build the maven package
+- command mvn package
+- spc requires jdk 17, so lets find a image which has maven with jdk 17
+- [Refer Here](https://github.com/dummyrepos/spring-petclinic-docker-june-25/commit/305af74ba7a46217807f01865c1f3549a04d15d1) for changes to have multi staged docker file
+
+### Search for how to build react js application and run it on nginx
+- Dockerfile
+```
+FROM node:lts AS build
+ADD . /app
+WORKDIR /app
+RUN npm install
+RUN npm run build
+
+FROM nginx
+RUN rm -rf /usr/share/nginx/html/
+COPY --from=build /app/dist /usr/share/nginx/html
+EXPOSE 80
+```
+- [Refer Here](https://github.com/dummyrepos/sample-react) to this repo and create a docker image
