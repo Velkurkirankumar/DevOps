@@ -2485,3 +2485,917 @@ COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80
 ```
 - [Refer Here](https://github.com/dummyrepos/sample-react) to this repo and create a docker image
+
+# June 28
+
+## Dockerfile
+#### Asp.dotnet core application containerization
+- [Refer Here](https://github.com/dummyrepos/nopCommerce-jun25) for the repo
+- The Dockerfile only building the code is
+
+```
+From mcr.microsoft.com/dotnet/sdk:9.0 As build
+Add . /nop
+WORKDIR /nop
+RUN dotnet build -c Release src/Presentation/Nop.Web/Nop.Web.csproj
+```
+
+- [Refer Here](https://github.com/dummyrepos/nopCommerce-jun25/blob/develop/Dockerfile) for the full version
+- Exercise: Ensure we have a user created in Dockerfile as of now we are running application as root user.
+#### SHELL FORM and EXEC FORM
+- shell form
+```
+RUN apt update
+CMD java -jar spc.jar
+```
+- EXEC form
+
+```CMD ["java", "-jar", "spc.jar"]```
+
+- SHell form any command is executed with /bin/sh -c <command> and this does not react well with signals sigint
+- Exec form directly executes the command which makes application PID-1 in a container and handles signals. You can expand variables in EXEC form
+- Use Shell form for RUN and EXEC form for ENTRYPOINT and CMD
+
+#### Other Dockerfile instructions to consider
+- ENTRYPOINT/CMD
+- ARG
+- ENV
+
+#### While building docker image i want to pass variables
+- Consider the following docker file
+```
+FROM openjdk:17
+ADD https://referenceappslt.s3.ap-south-1.amazonaws.com/spring-petclinic-3.3.0-SNAPSHOT.jar /spring-petclinic-3.3.0-SNAPSHOT.jar
+EXPOSE 8080
+CMD java -jar /spring-petclinic-3.3.0-SNAPSHOT.jar
+```
+
+- [Refer Here](https://docs.docker.com/reference/dockerfile/#arg) for ARG instruction
+```
+FROM openjdk:17
+ARG JAR_URL='https://referenceappslt.s3.ap-south-1.amazonaws.com/spring-petclinic-3.3.0-SNAPSHOT.jar'
+ADD ${JAR_URL} /spring-petclinic-3.3.0-SNAPSHOT.jar
+EXPOSE 8080
+CMD ["java", "-jar", "/spring-petclinic-3.3.0-SNAPSHOT.jar"]
+```
+- build command
+```docker image build --build-arg JAR_URL='https://referenceappslt.s3.ap-south-1.amazonaws.com/spring-petclinic-3.3.0-SNAPSHOT.jar' -t spc:1 .```
+
+- ARGs are accesible only while building image not while running container.
+##### I Want to set values which i will be using in a container
+- Lets consider the following
+```
+FROM openjdk:17
+ARG JAR_URL='https://referenceappslt.s3.ap-south-1.amazonaws.com/spring-petclinic-3.3.0-SNAPSHOT.jar'
+ADD ${JAR_URL} /spring-petclinic-3.3.0-SNAPSHOT.jar
+EXPOSE 8080
+CMD ["java", "-jar", "/spring-petclinic-3.3.0-SNAPSHOT.jar"]
+```
+
+- [ENV](https://docs.docker.com/reference/dockerfile/#env)
+```
+FROM openjdk:17
+ARG JAR_URL='https://referenceappslt.s3.ap-south-1.amazonaws.com/spring-petclinic-3.3.0-SNAPSHOT.jar'
+ADD ${JAR_URL} /spring-petclinic-3.3.0-SNAPSHOT.jar
+ENV TEST='DEFAULT'
+EXPOSE 8080
+CMD ["java", "-jar", "/spring-petclinic-3.3.0-SNAPSHOT.jar"]
+```
+
+![image](https://github.com/user-attachments/assets/81c6ff05-9129-4efe-b13f-63b7dead4f11)
+
+### ENTRYPOINT and CMD
+- CMD can be overriten while running the docker by passing any thing after image name during run
+```docker run ..... <image> [------]```
+- ENTRYPOINT can be change via –entrypoint during run
+- When you run a docker container it will run ENTRYPOINT + CMD as PID 1
+- Case 1: This will execute echo hello when container starts
+```
+FROM alpine
+ENTRYPOINT [ "echo" ]
+CMD ["hello"]
+```
+- Case 2: Only entrypoint
+```
+FROM alpine
+ENTRYPOINT [ "echo", "hello" ]
+```
+- Case 3: Only CMD
+```
+FROM alpine
+CMD [ "echo", "hello" ]
+```
+- Case 4: NO CMD and NO Entrypoint the container will try to run base images Start command
+##### Optimizations in Dockerfile
+- Storage
+- Security
+
+# 30 June
+
+### Docker contd…
+##### Docker Image Layers
+- Lets run the simple apline image with sleep 1d as cmd
+
+![image](https://github.com/user-attachments/assets/dd2fd8e9-8398-498f-bc0b-6e29e0496be0)
+
+- Docker image is collection of readonly layers
+- Each docker container gets a writable layer for all changes done w.r.t storage and image layers are reused across containers
+
+![image](https://github.com/user-attachments/assets/8dc1ad01-ceb0-4462-9538-369d30710419)
+
+- When we make any change in existing file which is part of image gets copied into writable layer and then modified (copy on write strategy)
+- When you delete the container writable layer is deleted.
+
+#### How are layers getting created
+- Docker Image layers are create during image creation
+- Image automatically gets parent layers (FROM)
+- Any instruction that leads to change in storage will create a layer.
+- Having too many layers is not a good idea, layers are created for reusability.
+- On a broader note, the following instructions majorly lead to layer creation
+    - RUN
+    - ADD | COPY
+- Generally we club lots of commands in a RUN statement
+
+```
+RUN apt update && \
+    apt install openjdk-17-jdk -y && \
+    .... \
+    ... \
+    ... \
+```
+#### How does Docker deal with layers
+- Docker Storage drivers deal with layers and make them available as disks to container
+- Right now overlay2 is used in docker
+- refer the following articles
+- [Refer Here](https://directdevops.blog/2019/09/26/docker-image-creation-and-docker-image-layers/) for image creation and layers and [Refer Here](https://directdevops.blog/2019/09/27/impact-of-image-layers-on-docker-containers-storage-drivers/) for storage drivers
+
+#### Example
+- Try finding a docker commad to run mysql container with
+    - username: qtdevops
+    - password: qtdevops
+    - database: qtlms
+```
+docker run -d --name db \
+    -e MYSQL_ROOT_PASSWORD=qtdevops \
+    -e MYSQL_PASSWORD=qtdevops \
+    -e MYSQL_USERNAME=qtdevops \
+    -e MYSQL_DATABASE=qtlms \
+    -p 3306:3306 \
+    mysql:8.0
+```
+- How to persist the data i.e. data should not be lost post container deletion => Volumes
+
+1 July
+
+#### Docker Volumes
+- Docker volumes have a life time independent of docker container.
+- Volumes act as mount onto a specific folder(s) in a container
+- [Docker volumes](https://docs.docker.com/engine/storage/volumes/) and [Refer Here](https://directdevops.blog/2019/10/03/docker-volumes/) for the article
+- Types:
+    - Volumes:
+        - Create a volume which gets create in /var/lib/docker
+        - And mount the volume to a folder in container.
+    - Bindmounts:
+        - Mount an existing folder on dockerhost into container.
+    - tmpfs
+- Lets create a simple alpine container with a bindmount (/home/Dell/docs -> /docs)
+```docker container run -d --name bindmountdemo -v /home/Dell/docs:/docs alpine sleep 1d```
+- execute experiment commands commands such as (Watch classroom video)
+    - df -h
+    - ls
+    - cat
+##### Lets use the volume
+- Create a volume
+```docker volume create --help```
+
+![image](https://github.com/user-attachments/assets/46490f94-2963-43c8-a102-61cbd18ae706)
+
+![image](https://github.com/user-attachments/assets/a618b301-308c-467b-8299-c6a9e2093f0e)
+
+- We can create volume by default even if the user doesnot create a volume that is by adding VOLUME instruction in Dockerfile.
+```
+FROM alpine
+RUN mkdir /docs
+VOLUME /docs
+CMD ["sleep", "1d"]
+```
+
+![image](https://github.com/user-attachments/assets/b0103e49-ef47-406a-8d61-43ca0cff2775)
+
+- Watch classroom recording for mysql
+
+### Docker networking
+- Docker has two major types of networking
+- single host (developer setup)
+- multi host (docker swarm): This is not an area of interest for us as we will be exploring kubernetes for multi host .
+- Network also is implemented as a driver [Refer Here](https://directdevops.blog/2019/10/05/docker-networking-series-i/)
+- Port Forwarding.
+
+![image](https://github.com/user-attachments/assets/5e91bcd8-e720-4adc-8fd7-cd0ceb430c06)
+
+# July 2
+
+### Docker Networking contd
+- By default docker container run on bridge network (default)
+- We can create our own bridge networks
+- container can be connected to network even after creation.
+- Lets create two containers d1 and d2 in default bridge network
+```
+docker run --name d1 -d alpine sleep 1d
+docker run --name d2 -d alpine sleep 1d
+```
+
+![image](https://github.com/user-attachments/assets/33d50015-a96f-4270-ab45-c938fadc825d)
+
+- Now lets inspect container and find ip addresses. Try ping
+
+![image](https://github.com/user-attachments/assets/52ae32b9-9130-44e9-acfa-228ae9fc092b)
+
+- Default bridge network allows ip based resolution but not name based resolution
+- Where a custom bridge network allow name based resolutions
+- Lets create a custom bridge network with range 192.168.0.0/24
+```docker network create --driver bridge --subnet 192.168.0.0/24 learning```
+
+![image](https://github.com/user-attachments/assets/b81793e9-091a-465e-b0ce-35bb39997c45)
+
+- Now lets create two container l1 and l2 and try connectivty by name and ip
+```
+docker run --name l1 --network learning -d alpine sleep 1d
+docker run --name l2 --network learning -d alpine sleep 1d
+```
+
+![image](https://github.com/user-attachments/assets/3b34625e-0c0f-40c8-abb2-d9d2bd162a3a)
+
+![image](https://github.com/user-attachments/assets/b85f606a-fc4a-49b6-8fa4-ef8608685d9c)
+
+### Nop Commerce with network
+- We have a image called as nop:1.0 which is our application and also we have pulled mysql image
+- lets create a network called as nop-net with range 10.100.0.0/24
+```docker network create --driver bridge --subnet 10.100.0.0/24 nop-net```
+
+- Lets create a volume for database nop-vol
+```docker volume create nop-vol```
+- Lets create a database container nopdb in nop-net with nop-vol attached
+```
+docker run \
+  --name nopdb \
+  --network nop-net \
+  -e POSTGRES_USER=nop \
+  -e POSTGRES_PASSWORD=qtdevops \
+  -e POSTGRES_DB=nop \
+  -p 5432:5432 \
+  -d postgres
+```
+
+![image](https://github.com/user-attachments/assets/4e5349d4-df8a-4988-80b5-490dcce5c191)
+
+- Now lets create nop container in nop-net
+```
+docker container run -d \
+    --name nop \
+    --network nop-net \
+    -p 80:5000 \
+    shaikkhajaibrahim/febnop:latest
+```
+- To be continued to show the running version
+
+#### Registry
+- Registries are where we store/distribute our images
+- Popular Registries
+    - Docker hub
+        - Private
+        - Public Registries
+    - Azure Container Registy (ACR)
+    - AWS Elastic Container Registry (ECR)
+    - GCR
+    - Jfrog/Artifactory
+
+- Registries will have repositories where each repo reprsents and application image which will have versions as tags.
+- Login into registy
+    - docker hub docker login
+- Create a tag according to repo
+
+
+![image](https://github.com/user-attachments/assets/2db14705-3d87-412c-a79f-03ebb244f260)
+![image](https://github.com/user-attachments/assets/0c88879e-c35e-4153-936d-4332b5e32ba9)
+
+# July 5
+
+### Kubernetes
+- Production-Grade Container Orchestration
+- History:
+    - Google had a project called as borg and later omega which they use for their internal applications.
+    - Google built a project based on learnings in borg and omega in golang they called it as kubernetes (k8s).
+    - This project was donated to CNCF
+- As of now k8s is defacto container orchestration system.
+
+#### Basic Architecture
+- K8s is a cluster which is one or more nodes
+- K8s cluster have two types of nodes
+    - Master Node(s):
+        - Manage the cluster
+    - Node(s):
+        - Run the workloads (applications)
+
+![image](https://github.com/user-attachments/assets/bd8db065-efe1-40e0-9710-e596332da417)
+
+- [Refer Here](https://directdevops.blog/2019/10/10/kubernetes-master-and-node-components/) for master and node components
+- K8s Master Node Components
+
+![image](https://github.com/user-attachments/assets/83aebd47-d7a3-4f51-8557-6b377cd977d1)
+
+- K8s Node Components
+
+![image](https://github.com/user-attachments/assets/e77ae42c-f980-44a4-97ea-2f9b9a61d91b)
+
+- K8s always tries to maintain a desired state.
+
+![image](https://github.com/user-attachments/assets/02748a5b-3f2f-4d37-b2b2-5b32534e8f9d)
+
+### K8s interfaces for extensability
+- k8s when it started used to support only docker as container technology.
+- K8s to call docker used to have lots of code dockershim which was part of k8s release.
+- K8s has introduced a standard called CRI (Container Runtime Interface). Any container technology can be used in k8s as Container Runtime if it has CRI.
+- K8s also has
+    - CNI (Container Network Interface)
+    - CSI (Container Storage Interface)
+
+#### Options for using k8s
+- Self-Hosted/On-prem:
+    - Install on your own servers
+- Cloud-Hosted (Managed) k8s:
+    - Azure AKS
+    - Google GKE
+    - AWS EKS
+- Single Host k8s (Developers):
+    - minikube
+    - kind
+
+#### Installing k8s
+- To Install k8s we need atleast two nodes
+    - master node
+    - node
+- Installing k8s using [kubeadm](https://kubernetes.io/docs/reference/setup-tools/kubeadm/) and [Refer Here](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/) for installation guide
+- In the class i have used Azure
+- Create two vms in same network and ensure they have atleast 2 vCPUs and 2 GB of RAM.
+- Installing container runtime on all nodes [Refer Here](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#installing-runtime)
+- For this installation lets use containerd
+
+```
+sudo apt update
+sudo apt install -y curl gnupg2 software-properties-common apt-transport-https ca-certificates
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/docker.gpg
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+sudo apt update
+sudo apt install -y containerd.io
+containerd config default | sudo tee /etc/containerd/config.toml >/dev/null 2>&1
+sudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/g' /etc/containerd/config.toml
+sudo systemctl restart containerd
+sudo systemctl enable containerd
+```
+
+- Now install the following kubelet, kubectl and [kubeadm on all nodes](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#installing-kubeadm-kubelet-and-kubectl)
+
+```
+sudo apt-get update
+# apt-transport-https may be a dummy package; if so, you can skip that package
+sudo apt-get install -y apt-transport-https ca-certificates curl gpg
+# If the directory `/etc/apt/keyrings` does not exist, it should be created before the curl command, read the note below.
+# sudo mkdir -p -m 755 /etc/apt/keyrings
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.33/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.33/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+sudo apt-get update
+sudo apt-get install -y kubelet kubeadm kubectl
+sudo apt-mark hold kubelet kubeadm kubectl
+```
+
+### Now lets create a k8s cluster
+- [Refer Here](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/)
+- Change the ip forward settings on all nodes
+```
+vi /etc/sysctl.conf
+# see the image below and uncomment the highlighted line
+sudo sysctl -p
+```
+
+![image](https://github.com/user-attachments/assets/30348221-b591-4cbb-9e97-a2463379ea59)
+
+- on the master node execute as sudo or root user
+
+```kubeadm init```
+
+![image](https://github.com/user-attachments/assets/54f36f44-9b93-460b-bf12-672b6331e289)
+
+- Now login into node as root user and run the kubeadm join command from above image
+
+![image](https://github.com/user-attachments/assets/ec297331-e0f0-4c92-a14a-958e831713f7)
+
+- As of now nodes are not ready due to CNI not being installed. lets install weavenet
+```kubectl apply -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml```
+
+![image](https://github.com/user-attachments/assets/2789c703-3e54-468f-9afd-39e543d53047)
+
+
+#### Quickly using k8s
+- [killerkoda](https://killercoda.com/playgrounds/scenario/kubernetes)
+
+# July 6
+
+#### Kubeadm with docker
+- Lets build a two node cluster with ubuntu 22.04
+- Install docker on both nodes
+```
+cd /tmp
+curl -fsSL https://get.docker.com -o install-docker.sh
+sh install-docker.sh
+sudo usermod -aG docker <username>
+```
+- Now install [cri-dockerd](https://github.com/Mirantis/cri-dockerd/releases) as of now we are using deb package [Refer Here](https://github.com/Mirantis/cri-dockerd/releases/download/v0.4.0/cri-dockerd_0.4.0.3-0.ubuntu-jammy_amd64.deb)
+
+```
+wget https://github.com/Mirantis/cri-dockerd/releases/download/v0.4.0/cri-dockerd_0.4.0.3-0.ubuntu-jammy_amd64.deb
+sudo dpkg -i cri-dockerd_0.4.0.3-0.ubuntu-jammy_amd64.deb
+```
+
+- Now install kubeadm, kubectl and kubelet on both nodes
+```
+sudo apt-get update
+# apt-transport-https may be a dummy package; if so, you can skip that package
+sudo apt-get install -y apt-transport-https ca-certificates curl gpg
+# If the directory `/etc/apt/keyrings` does not exist, it should be created before the curl command, read the note below.
+# sudo mkdir -p -m 755 /etc/apt/keyrings
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.33/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.33/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+sudo apt-get update
+sudo apt-get install -y kubelet kubeadm kubectl
+sudo apt-mark hold kubelet kubeadm kubectl
+```
+
+- In this mode in all kubeadm we need to pass --cri-socket=unix:///var/run/cri-dockerd.sock
+- our init commmand with flannel as CNI
+- ```kubeadm init --pod-network-cidr=10.244.0.0/16 --cri-socket=unix:///var/run/cri-dockerd.sock```
+
+- Then join the other node to the cluster
+- Lets install CNI flannel
+```kubectl apply -f https://github.com/coreos/flannel/raw/master/Documentation/kube-flannel.yml```
+
+#### K8s Workloads – Pod
+- Docker creates a Container, Hypervisor creates Virtual Machines and k8s creates Pods
+- Pod has container(s) in it.
+- Every Pod gets a unique ip with in a k8s cluster
+- Pod can have one or more containers in it.
+- Containers with in pod communicate over localhost (127.0.0.1) i.e. two containers cannot be inside pod which require same port
+
+![image](https://github.com/user-attachments/assets/abbdf966-9450-4017-84c5-f6b1726e7572)
+
+- In a Pod if we have more than one container
+    - primary container => maincar container
+    - other container(s) => sidecar containers
+
+- Ideally a Pod should run an application component/microservice in it
+
+![image](https://github.com/user-attachments/assets/0cbefbab-1cab-4fe7-a7d2-5d34bed50612)
+
+- [Refer Here](https://www.restapitutorial.com/) for restapi
+
+#### Interacting with k8s
+- K8s has a [REST API](https://kubernetes.io/docs/concepts/overview/kubernetes-api/) for all the resources of k8s exposed by kube api server
+- All the resources that can be created by k8s can be fetched by kubectl api-resources command
+- [API Versioning](https://kubernetes.io/docs/reference/using-api/#api-versioning)
+- API Groups:
+    - core
+    - other
+
+- ApiVersion
+```
+# format
+<apiGroup>/<version>
+# core group
+<version>
+```
+- ApiVersion examples
+
+```
+v1 => group => core, version => v1
+
+network.k8s.io/v2beta3 => group => network.k8s.io, version v2beta3
+```
+
+- [Pod](https://kubernetes.io/docs/concepts/workloads/pods/)
+- [Refer Here](https://kubernetes.io/docs/reference/kubectl/quick-reference/) for kubectl cheatsheet
+- Creation types:
+    - imperative:
+        - construct a command line
+    - declartive
+        - create a manifest file (YAML)
+
+#### Play with pods
+- Imperative
+
+![image](https://github.com/user-attachments/assets/026d4dfd-d9a8-4444-a075-9317a878e443)
+
+- declartive
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web-3
+spec:
+  containers:
+  - name: nginx
+    image: nginx:1.14.2
+    ports:
+    - containerPort: 80
+```
+
+![image](https://github.com/user-attachments/assets/e80c6105-eb46-49b4-be68-c3241d025128)
+
+![image](https://github.com/user-attachments/assets/5952a159-edb0-4b69-946f-ee9745d39189)
+
+#### Choosing CNI for kubeadm
+
+| **CNI Plugin**     | **Overlay / Routing**                | **Network Policy Support**           | **Security Features**                                | **Performance** | **Advanced Features**                                                   | **Ease of Use** | **Cloud Friendly** | **Notable Use Cases / Notes**                        |
+|--------------------|--------------------------------------|--------------------------------------|------------------------------------------------------|------------------|---------------------------------------------------------------------------|------------------|---------------------|-------------------------------------------------------|
+| **Calico**         | Overlay & BGP                        | Yes (advanced)                       | Distributed firewall, policy enforcement              | High             | BGP routing, egress/ingress control, multi-cluster                      | Medium           | Partial             | Highly scalable, strong security focus               |
+| **Flannel**        | Overlay (VXLAN, host-gw, others)     | No                                   | None                                                 | Good             | Simple L3 fabric                                                       | Easy             | Yes                 | Simplicity, basic connectivity                       |
+| **Cilium**         | Overlay & native routing (eBPF)      | Yes (L3-L7, DNS, HTTP)               | eBPF-based, identity-based, application-aware         | Very High        | Deep observability, service mesh integration, multi-cluster             | Medium           | Yes                 | Advanced security, microservices focus               |
+| **Weave Net**      | Overlay (mesh)                       | Yes                                  | Basic                                                | Good             | DNS, encryption, mesh topology                                        | Easy             | Yes                 | Simple install, mesh networking                      |
+| **Kube-router**    | Routing (BGP, IPVS, VXLAN)           | Yes                                  | Network policy                                       | High             | Service proxy, BGP peering                                             | Medium           | Partial             | Combines routing, proxy, policy                      |
+| **Antrea**         | Overlay & native                     | Yes                                  | Policy enforcement                                   | High             | Flow visibility, multi-cluster                                         | Medium           | Yes                 | VMware-backed, modern features                      |
+| **Multus**         | N/A (meta-plugin)                    | N/A                                  | N/A                                                  | N/A              | Multi-homed pods (multiple CNIs)                                      | Medium           | Yes                 | Attach multiple networks to pods                    |
+| **OVN-Kubernetes** | Overlay & native                     | Yes                                  | Policy enforcement                                   | High             | VLAN, QoS, advanced topologies                                         | Medium           | Yes                 | Based on Open Virtual Network                        |
+
+
+Key notes:
+- Calico: Advanced network policy, BGP routing, distributed firewall, excellent for large-scale and secure clusters[2][3][4][5].
+- Flannel: Very simple, easy to deploy, basic connectivity, no network policy support[3][4][1][5].
+- Cilium: eBPF-powered, high performance, deep observability, supports L3-L7 policies, integrates with service mesh, advanced security[2][3][4][5].
+- Weave Net: Mesh overlay, simple install, supports encryption and basic policies[4][1][5].
+- Kube-router: Combines routing, proxy, and policy in one, BGP support, high performance[4][1].
+- Antrea: Modern, supports advanced policies, observability, multi-cluster, designed for Kubernetes[4].
+- Multus: Not a networking provider itself, but enables pods to use multiple CNIs (e.g., for SR-IOV, DPDK, etc.)[4].
+- OVN-Kubernetes: Advanced features, Open vSwitch-based, supports VLAN, QoS, and complex topologies[4].
+
+#### Cloud compatibility varies: Flannel, Cilium, and Weave Net work well in cloud environments, while Calico may need extra configuration for some clouds[1].
+
+
+##### Feature summary:
+- Overlay networking: Flannel, Weave Net, Cilium, Calico (optional)
+- Native routing: Calico, Cilium, Kube-router, OVN-Kubernetes
+- Network policy: Calico, Cilium, Antrea, Kube-router, Weave Net (basic)
+- Advanced security: Calico, Cilium, Antrea
+- Service mesh integration: Cilium, Antrea
+- Multi-cluster support: Calico, Cilium, Antrea
+- This table should help you compare and select the right CNI for your kubeadm-based Kubernetes cluster based on your requirements[2][3][4][1][5]
+
+```
+[1] https://github.com/weibeld/cni-plugin-comparison
+[2] https://kubevious.io/blog/post/comparing-kubernetes-container-network-interface-cni-providers/
+[3] https://www.plural.sh/blog/kubernetes-cni-guide/
+[4] https://www.devopsschool.com/blog/list-of-cni-plugins-used-in-kubernetes/
+[5] https://gyptazy.com/kubernetes-the-four-most-common-cnis/
+[6] https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/network-plugins/
+[7] https://github.com/kubernetes/website/issues/45007
+[8] https://www.reddit.com/r/kubernetes/comments/1110k8p/suggestions_for_k8s_cni/
+[9] https://learn.microsoft.com/en-us/azure/aks/concepts-network-cni-overview
+[10] https://docs.tigera.io/calico/latest/getting-started/kubernetes/hardway/install-cni-plugin
+[11] https://kubernetes.io/blog/2021/04/20/defining-networkpolicy-conformance-cni-providers/
+[12] https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/
+[13] https://www.suse.com/c/rancher_blog/comparing-kubernetes-cni-providers-flannel-calico-canal-and-weave/
+[14] https://stackoverflow.com/questions/62129716/is-it-possible-to-have-2-network-plugins-for-the-kubernetes-cluster
+[15] https://www.tigera.io/learn/guides/kubernetes-networking/kubernetes-cni/
+[16] https://blog.developersteve.com/kubernetes-networking-cni-plugins-and-policy-solutions-918167dff965
+[17] https://kubernetes-docsy-staging.netlify.app/docs/concepts/extend-kubernetes/compute-storage-net/network-plugins/
+[18] https://kubernetes.io/docs/concepts/cluster-administration/addons/
+[19] https://rstforum.net/whitepaper/understanding-kubernetes-cni
+[20] https://overcast.blog/choosing-the-right-container-network-interface-plugin-in-kubernetes-45391c7d4cc8
+```
+
+# 7 July
+
+### Writing Manifests
+#### YAML
+- This a file format for representing data which uses name value or key value pairs as a basic structure.
+- YAML files generally have an extension of .yml or .yaml
+- Basic structure
+```
+name-1: <value-1>
+name-2: <value-2>
+..
+..
+name-n: <value-n>
+```
+- Types of data
+    - Simple/Scalar
+        - Text
+        - number
+        - boolean
+    - Complex
+        - object/map
+        - array/list
+- Text
+```
+city: Hyderabad
+city: 'Hyderabad'
+city: "Hyderabad"
+```
+- number
+```population: 11.3```
+- boolean
+```
+metro: true
+metro: yes
+```
+- list or array
+```
+areas: ['Ameerpet', 'SRNagar']
+areas:
+- Ameerpet
+- SR Nagar
+areas:
+  - Ameerpet
+  - SR Nagar
+```
+- object|map:
+```
+address:
+  flatno: 601-b
+  builing: nilgiri
+  area: Ameerpet
+  city: Hyderabad
+```
+
+#### YAML Tutorial
+- [Refer Here](https://learnxinyminutes.com/yaml/)
+- [Refer Here](https://docs.ansible.com/ansible/latest/reference_appendices/YAMLSyntax.html)
+- Generally YAML for a specific tool comes with a structure or schema
+- Lets create a structure for filling a product information in ecommerce website
+- create a yaml file based on following
+```
+name string
+manufacturer: string
+skus: sku array
+gst: number (default: 18)
+
+## sku 
+name: string
+description: string
+price: number
+```       
+- Lets create a sample yaml file
+```
+---
+name: Sony PlayStation5 
+manufacturer: Sony
+skus:
+  - name: Slim
+    description: Slim
+    price: 54990
+  - name: Muscular
+    description: Muscular
+    price: 154990
+```
+#### Lets start writing pod manifests
+- Kubernetes Pods have containers
+- Any thing which you create in k8s is an object
+- [Refer Here](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/) for k8s api reference
+- [Refer Here](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#pod-v1-core) for pod spec
+
+#### Example 1: A pod with nginx container
+- [Refer Here](https://github.com/asquarezone/KubernetesZone/commit/52d175ae4c3e7b6b51ba1bef036bbb76deb10c2e) for the changes done
+
+![image](https://github.com/user-attachments/assets/9e61dec1-b0bf-40b9-84cb-7d709336e097)
+
+- API Server fills the status
+
+![image](https://github.com/user-attachments/assets/ccd101a8-d10d-4531-b87c-ca661ad4fd95)
+
+![image](https://github.com/user-attachments/assets/f5a3f9a4-edeb-41bb-9e0f-9eb51b8339d1)
+
+#### Example 2: A pod with nginx container and alpine container
+- [Refer Here](https://github.com/asquarezone/KubernetesZone/commit/9d7ab4e73e3bdc28bfd9ea890779f08ef0274061) for the changes done
+
+![image](https://github.com/user-attachments/assets/0be9ca95-6ea7-4f87-bba7-2e4a47758501)
+
+#### Example 3: A pod with alpine container without cmd
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: third
+spec:
+  containers:
+    - name: alp
+      image: alpine
+```
+
+![image](https://github.com/user-attachments/assets/8813eb6f-48d4-45e8-bc92-d457428be85b)
+
+# July 8
+
+### Pods contd
+#### Dealing with environmental variables
+- container
+```
+docker run -d --name mysqldb \
+     -e MYSQL_ROOT_PASSWORD=qtdevops \
+     -e MYSQL_DATABASE=nop \
+     -e MYSQL_USER=qtdevops \
+     -e MYSQL_PASSWORD=qtdevops \
+     mysql:latest
+```
+
+- Activity 4: lets try writing a manifest to create a mysql container in a Pod
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: forth
+spec:
+  containers:
+    - name: mysql
+      image: mysql:latest
+      env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: qtdevops
+        - name: MYSQL_USER
+          value: qtdevops
+        - name: MYSQL_PASSWORD
+          value: qtdevops
+        - name: MYSQL_DATABASE
+          value: nop
+```
+
+![image](https://github.com/user-attachments/assets/ef7cdb3f-a2e0-4fa2-b325-44c56ac358cd)
+
+
+#### Dealing with commands or entrypoints
+- Certain containers we might need to pass a CMD
+- ```docker run -d --name test alpine sleep 1d```
+- Lets try writing a manifest for this
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: fifth
+spec:
+  containers:
+    - name: alp
+      image: alpine
+      args:
+        - sleep
+        - 1d
+```
+
+#### Resources in kuberntes
+- [Refer Here](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) for resources and limits
+- A pod With resources defined has an impact on [QoS](https://kubernetes.io/docs/tasks/configure-pod-container/quality-service-pod/)
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: second
+spec:
+  containers:
+    - name: first
+      image: nginx
+    - name: second
+      image: alpine
+      command:
+        - sleep
+        - 1d
+```
+
+# July 9
+
+#### Labels
+- A label is a key value pair that can be applied to any kubernetnes object
+- This can be used for querying objects
+- To add labels in manifest, refer metadata section.
+- [Refer Here](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/) for official docs
+- manifest
+
+```
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: one
+  labels:
+    app: nginx
+    env: dev
+    project: learning
+spec:
+  containers:
+    - name: web
+      image: nginx
+      resources:
+        requests:
+          cpu: 100m
+          memory: 10M
+        limits:
+          cpu: 500m
+          memory: 128M
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: two
+  labels:
+    app: nginx
+    env: qa
+    project: learning
+spec:
+  containers:
+    - name: web
+      image: nginx
+      resources:
+        requests:
+          cpu: 100m
+          memory: 10M
+        limits:
+          cpu: 500m
+          memory: 128M
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: three
+  labels:
+    app: nginx
+    env: uat
+    project: learning
+spec:
+  containers:
+    - name: web
+      image: nginx
+      resources:
+        requests:
+          cpu: 100m
+          memory: 10M
+        limits:
+          cpu: 500m
+          memory: 128M
+```
+
+- ![image](https://github.com/user-attachments/assets/1e9b1510-ed8f-41f6-af5f-87e0a17f953c)
+
+- Once labels are applied we can query them using selectors
+- [Selectors](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors) are of two types
+    - Equality Based: Two major operations equals & not equals
+    - Set Based:
+        - in
+        - notin
+        - exists
+        - doesnot exists
+- Query using
+
+```
+kubectl get po
+kubectl get po -l 'env = dev'
+kubectl get po -l 'env in (dev,qa)'
+```
+#### Usecases
+- My pod requires some service to be up & then it should start
+    - types of containers in pod
+- How to ensure pods are running
+    - controller objects
+        - replica set
+        - deployments => zero down time & rollbacks
+        - daemonset
+- How to run batch jobs
+    - Job
+    - CronJob
+- How about rather than static replicas i need dynamic => Autoscalers
+- Load balancing/Service Interactions
+    - Service
+    - Ingress
+    - Exposing the services to external world
+        - Loadbalancers
+        - Port forwarding
+- Storage Solutions:
+    - Persistent Volumes
+    - Controller:
+        - StatefulSet
+- Configuration & Secrets
+    - configmaps
+    - secrets
+    - vaults (secret vaults)
+- Administrative:
+    - backup
+    - upgrade
+    - Authentication & Authorization
+    - Network policies
+- Manifest => Static YAML , To enable Dyanmic YAML
+    - HELM
+    - Kustomize
+- GitOps:
+    - ArgoCD
+- Troubleshooting: (Observability)
+    - Monitor
+    - Prometheus & Grafana
+- Security:
+- Service Mesh
