@@ -3399,3 +3399,794 @@ kubectl get po -l 'env in (dev,qa)'
     - Prometheus & Grafana
 - Security:
 - Service Mesh
+
+
+# July 10
+
+## Types of containers in a Pod
+- In Pod we have three types of containers
+- containers: This is where we run our applications and ideally they would be running all the time. Containers in this will all start in parallel
+- init containers: These are containers which will be created before the containers only after they finish execution the main containers.
+- They execute in sequence. init containers are supposed tocheck for pre-reqs [Refer Here](https://kubernetes.io/docs/concepts/workloads/pods/init-containers/) for official docs
+- Consider the following spec
+
+```
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: eight
+spec:
+  containers:
+    - name: web
+      image: nginx
+      resources:
+        requests:
+          cpu: 100m
+          memory: 10M
+        limits:
+          cpu: 500m
+          memory: 128M
+  initContainers:
+    - name: cont1
+      image: alpine
+      args:
+        - sleep
+        - 5s
+    - name: cont2
+      image: alpine
+      args:
+        - sleep
+        - 10s
+```
+
+- Now lets create and watch for pod
+
+<img width="750" height="435" alt="image" src="https://github.com/user-attachments/assets/8794f0d7-eeb4-437d-a555-80eb53a8c8d3" />
+
+
+- [Refer Here](https://kubernetes.io/docs/concepts/workloads/pods/ephemeral-containers/) for ephemeral containers
+
+### Pod lifecycle
+- [Refer Here](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/) for official docs on pod lifecycle
+- Pod Phase [Refer Here](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-phase)
+
+<img width="750" height="409" alt="image" src="https://github.com/user-attachments/assets/b9e03439-9b04-427b-8346-50d96f729b16" />
+
+### Controllers
+- Pod desired state is to ensure container is running
+- Controllers manage Pods [Refer Here](https://kubernetes.io/docs/concepts/workloads/controllers/)
+
+### ReplicaSet
+- [Refer Here](https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/) for official docs.
+- Replicaset can maintain replicas of Pods.
+- Example 1: Create a repicaset with 3 nginx containers
+- [Refer Here](https://github.com/asquarezone/KubernetesZone/commit/6fa81664a126736102e9e320f871b644f1c1209d) for the changes done
+
+```
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: nginx
+  labels:
+    app: nginx
+    me: controller
+    type: rs
+spec:
+  minReadySeconds: 5
+  replicas: 3
+  selector:
+    matchLabels:
+      app: web
+      env: dev
+  template:
+    metadata:
+      labels:
+        app: web
+        env: dev
+        srv: nginx
+    spec:
+      containers:
+        - name: web
+          image: nginx
+```
+
+<img width="677" height="512" alt="image" src="https://github.com/user-attachments/assets/b58e9708-0c0d-4786-822b-453890f11d68" />
+
+- Now to increase number of replicas we can use kubectl scale, but it is recommended to change yaml and reexecute kubectl apply -f <filepath>
+
+# July 12
+
+## Phippy Goes to the Zoo
+- [Refer Here](https://www.cncf.io/phippy/phippy-goes-to-the-zoo-book/) and [Refer Here](https://www.cncf.io/wp-content/uploads/2020/08/Phippy-Goes-To-The-Zoo.pdf) for pdf version
+### Managed Kubernetes
+- Managed K8s is k8s offered as a service by cloud providers.
+- Azure offers AKS (Azure kubernetes service) & AWS offer EKS
+- Managed K8s means
+- control plane is managed by cloud
+- Managed k8s offers
+- load balancers to integrate with k8s
+- storage services for persistence
+- managing secrets effectively with vaults 
+- easy adminstration.
+
+### Lets create an AKS Cluster
+- Ensure Azure CLI is installed and connected to your subscription
+#### az login
+- Install kubectl
+- creating k8s cluster in  azure
+- Create the following variables
+- linux or mac
+
+```
+export MY_RESOURCE_GROUP_NAME="myAKSResourceGroup"
+export REGION="eastus"
+export MY_AKS_CLUSTER_NAME="myAKSCluster"
+export MY_DNS_LABEL="mydnslabel"
+```
+- Windows Terminal
+
+```
+$MY_RESOURCE_GROUP_NAME="myAKSResourceGroup"
+$REGION="eastus"
+$MY_AKS_CLUSTER_NAME="myAKSCluster"
+$MY_DNS_LABEL="mydnslabel"
+```
+
+- Create a resource group
+
+- ```az group create --name $MY_RESOURCE_GROUP_NAME --location $REGION```
+
+- Create an AKS Cluster
+
+- ```az aks create --resource-group $MY_RESOURCE_GROUP_NAME --name $MY_AKS_CLUSTER_NAME --node-count 1 --generate-ssh-keys --node-vm-size "Standard_B2ms"```
+
+#### Service
+- [Refer Here](https://kubernetes.io/docs/concepts/services-networking/service/) for official docs
+- A Service when created gets an virtual ip address which is fixed.
+- A service is made of endpoints, Endpoint is a pod with ip on a specific port
+- service types
+    - ClusterIP: This is default type of k8s service which is internal within cluster.
+    - Node Port: Expose the application via a port on the node
+    - Load Balancer: Exposes the application via load balancer (Used in managed k8s clusters)
+    - ExternalName: Services of type ExternalName map a Service to a DNS name
+- A service with in k8s cluster can be accessed by name or ip.
+- Name resolution of service works in this fashion
+- A fqdn of service is generally <svc-name>.<namespace>.svc.cluster.local
+
+- ```nginx-internal.default.svc.cluster.local```
+
+- [Refer Here](https://github.com/asquarezone/KubernetesZone/commit/607c4b19ba51343dd3a37849a9fe2a9a49f475e0) for different manifests and classroom video for
+    - exploring nslookups
+    - different types of services with examples.
+
+#### Deployments
+
+<img width="707" height="726" alt="image" src="https://github.com/user-attachments/assets/5b24ca0e-afe7-4da0-a68b-d563e1d23612" />
+
+- [Refer Here](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/) for official docs
+- k8s has two types of stragies for deployment
+    - RollingUpdate: This is default which ensures by default only 25% of your workload updates happen
+    - Recreate
+- K8s Deployments have options to undo rollout or go back to previous versions & this is supported by Daemonsets & stateful sets as well
+- Lets discuss this in our next session
+    - health checks
+    - deployments
+    - job/cronjob
+    - config maps
+    - secrets
+
+# July 14
+
+### Annotations
+- Annotations are also key value pairs but meant for usage with additional or external tools by attaching metadata [Refer Here](https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/)
+- Well known labels and annotations [Refer Here](https://kubernetes.io/docs/reference/labels-annotations-taints/)
+
+### Health Checks
+- [Refer Here](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/) for health checkness
+- We have 3 major health probes
+    - Startup
+    - Readiness
+    - Liveness
+- We can perform these checks by
+    - running commands inside container
+    - Sending a tcp request
+    - sending a http request
+    - sending a grpc request
+
+| Probe     | What it checks                        | What happens if it fails                      |
+|-----------|----------------------------------------|-----------------------------------------------|
+| Startup   | Checks if the container is started successfully | Container will be killed and restarted       |
+| Liveness  | Is the container live                  | Container will be killed and restarted        |
+| Readiness | Is container ready to serve traffic    | Pod will be removed from Service endpoints    |
+
+
+- First probe is startup and till it suceeds no further checks are done
+### Deployments
+- [Deployments](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/)
+- Lets write a k8s manifest for Deploying applications
+- Deployment create Replicaset which creates pods [Refer Here](https://github.com/asquarezone/KubernetesZone/commit/c79fa02448c72df8ca761ce826ad154336812f33) for changes
+
+![image](https://i0.wp.com/directdevops.blog/wp-content/uploads/2025/07/k8s25.png?w=750&ssl=1)
+
+- look out for kubectl rollout --help
+- Lets rollout a new version
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-deploy
+  annotations:
+    kubernetes.io/change-cause: v2 deployment to slim version
+spec:
+  minReadySeconds: 5
+  replicas: 4
+  selector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values:
+          - web
+          - nginx
+          - apache
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - name: web
+          image: httpd:2-alpine
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          ports:
+            - name: http
+              protocol: TCP
+              containerPort: 80
+          startupProbe:
+            initialDelaySeconds: 1
+            periodSeconds: 2
+            successThreshold: 1
+            failureThreshold: 2
+            tcpSocket:
+              port: 80
+          livenessProbe:
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            successThreshold: 1
+            failureThreshold: 2
+            httpGet:
+              path: /
+              port: 80
+          readinessProbe:
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            successThreshold: 1
+            failureThreshold: 2
+            timeoutSeconds: 5
+            httpGet:
+              path: /
+              port: 80
+```
+
+# July 15
+
+### Config maps and Secrets
+- [Refer Here](https://kubernetes.io/docs/concepts/configuration/configmap/) for config maps and [Refer Here](https://kubernetes.io/docs/concepts/configuration/secret/) for secrets
+- Configmap example
+
+```
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-cm
+data:
+  MYSQL_ROOT_PASSWORD: qwerty456
+  MYSQL_DATABASE: sales
+  MYSQL_USER: ltdevops
+  MYSQL_PASSWORD: qwerty456
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql-fromcm
+  labels:
+    app: mysql
+spec:
+  containers:
+    - name: mysql-fromcm
+      image: mysql:lts
+      ports:
+        - containerPort: 3306
+      envFrom:
+        - configMapRef:
+            name: mysql-cm
+            optional: False
+```
+
+![image](<img width="750" height="528" alt="image" src="https://github.com/user-attachments/assets/d6ebbe74-f65e-42f6-8291-79d7e08e7d1f" />)
+
+
+- * Secret Example
+
+```
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-creds
+data:
+  MYSQL_ROOT_PASSWORD: cXdlcnR5NDU2Cg==
+  MYSQL_DATABASE: c2FsZXMK
+  MYSQL_USER: bHRkZXZvcHMK
+  MYSQL_PASSWORD: cXdlcnR5NDU2Cg==
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql-fromsecret
+  labels:
+    app: mysql
+    db: mysql
+spec:
+  containers:
+    - name: mysql-fromcm
+      image: mysql:lts
+      ports:
+        - containerPort: 3306
+      envFrom:
+        - secretRef:
+            name: mysql-creds
+            optional: False
+```
+
+### Daemon sets
+- Now ensure you have k8s cluster with multiple nodes
+- [Refer Here](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/) for daemonset
+
+```
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: my-ds
+spec:
+  minReadySeconds: 5
+  selector:
+    matchLabels:
+      app: agent
+  template:
+    metadata:
+      labels:
+        app: agent
+    spec:
+      containers:
+        - name: agent
+          image: alpine
+          args:
+            - sleep
+            - 1d
+```
+
+# July 16
+
+### Jobs, CronJobs
+- [Jobs](https://kubernetes.io/docs/concepts/workloads/controllers/job/)
+- [Cronjobs](https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/) creates jobs on schedule
+- Lets write a cronjob which runs every 5 minutes
+
+![image](https://i0.wp.com/directdevops.blog/wp-content/uploads/2025/07/k8s28.png?w=750&ssl=1)
+
+### Scheduling Pods on Nodes
+- By default k8s chooses a node and if we need to influence that we can schedule [Refer Here](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/)
+- Scheduling is done by one of approaches
+    - pods/workloads trying to choose a node
+        - node selector
+        - affinity based selections
+    - node trying to put a criteria for a pod to run on the node
+        - taints & tolerations
+- K8s also allow to create your own schedulers.
+
+### Pod Selecting a node by label or name
+- Example of directly selecting a node
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: selectnode-1
+spec:
+  nodeName: aks-nodepool1-33085162-vmss000002
+  containers:
+    - name: web
+      image: nginx
+      resources:
+        requests:
+          cpu: 100m
+          memory: 10M
+        limits:
+          cpu: 500m
+          memory: 128M
+```
+- Node selector
+
+```
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: selectnode-1
+spec:
+  nodeSelector:
+    env: dev
+  containers:
+    - name: web
+      image: nginx
+      resources:
+        requests:
+          cpu: 100m
+          memory: 10M
+        limits:
+          cpu: 500m
+          memory: 128M
+```
+
+### Affinity based selection
+- [Refer Here](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity) for affinity
+- Affinity has 3 options
+    - nodeAffinity
+    - podAffinity
+    - podAntiAffinity
+- In affinity based selections you will have
+    - requiredDuringSchedulingIgnoredDuringExecution: This is hard rule pod will be schedule only when this condition is met
+    - preferredDuringSchedulingIgnoredDuringExecution: This is soft rule pod will be schedule preferrable on the condition, but if the condition is not met k8s will schedule the pod on best fit node.
+
+# July 19
+
+### Scheduling
+##### Affinity
+- We have two types of affinties (anti-affinity)
+    - node
+    - pod
+- When we use pod affinity we can colocate pods further based on toplogy key
+    - kubernetes.io/hostname: Represents the node itself (host level). Allows you to target individual nodes.
+    - topology.kubernetes.io/zone: Corresponds to the availability zone (often used in cloud environments).
+    - topology.kubernetes.io/region: Represents the region the node is scheduled in.
+#### Lets try to colocate pods
+- Create a pod1 with the following spec
+
+```
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod1
+  labels:
+    app: pod1
+spec:
+  containers:
+    - name: web
+      image: nginx
+      resources:
+        requests:
+          cpu: 100m
+          memory: 10M
+        limits:
+          cpu: 500m
+          memory: 128M
+```
+
+- Now lets write a spec to colocate pod2 on the same node as pod 1 (podaffinity & topologyKey)
+
+```
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod2
+  labels:
+    app: pod2
+spec:
+  affinity:
+    podAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - topologyKey: kubernetes.io/hostname
+          labelSelector:
+            matchLabels:
+              app: pod1
+  containers:
+    - name: web
+      image: nginx
+      resources:
+        requests:
+          cpu: 100m
+          memory: 10M
+        limits:
+          cpu: 500m
+          memory: 128M
+```
+
+- Lets create pod3 which should be scheduled on different node than pod 1
+
+```
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod3
+  labels:
+    app: pod3
+spec:
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - topologyKey: kubernetes.io/hostname
+          labelSelector:
+            matchLabels:
+              app: pod1 
+  containers:
+    - name: web
+      image: nginx
+      resources:
+        requests:
+          cpu: 100m
+          memory: 10M
+        limits:
+          cpu: 500m
+          memory: 128M
+```
+
+![image](https://i0.wp.com/directdevops.blog/wp-content/uploads/2025/07/k8s29.png?w=750&ssl=1)
+
+
+#### Taints and Tolerations
+- [Refer Here](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) for official docs
+- Taint Effects
+    - NoSchedule
+    - PreferNoSchedule
+    - NoExecute
+- Lets apply a taint to node 0
+- ```kubectl taint nodes aks-nodepool1-16257739-vmss000000 ssd=ultra:NoExecute```
+
+- Lets create pod 1
+
+```
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod1
+  labels:
+    app: pod1
+spec:
+  containers:
+    - name: web
+      image: nginx
+      resources:
+        requests:
+          cpu: 100m
+          memory: 10M
+        limits:
+          cpu: 500m
+          memory: 128M
+```
+
+- Now lets create a spec for pod 2 with matching toleration
+
+```
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod2
+  labels:
+    app: pod2
+spec:
+  tolerations:
+    - key: ssd
+      operator: Equal
+      value: ultra
+      effect: NoExecute
+  containers:
+    - name: web
+      image: nginx
+      resources:
+        requests:
+          cpu: 100m
+          memory: 10M
+        limits:
+          cpu: 500m
+          memory: 128M
+```
+
+- Now apply the manifests
+
+![image](https://i0.wp.com/directdevops.blog/wp-content/uploads/2025/07/k8s30.png?w=750&ssl=1)
+
+### Mounting volumes into Pods (container)
+- Mostly current focus will be on empty volumes and config maps/secrets as volumes
+- Lets write a simple pod spec to run alpine
+
+
+```
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: vol-demo
+spec:
+  containers:
+    - name: test 
+      image: alpine
+      command:
+        - sleep
+        - 1d
+      volumeMounts:
+        - name: test-vol
+          mountPath: /tools
+  volumes:
+    - name: test-vol
+      emptyDir:
+```
+
+- Mounting empty dir into container
+
+![image](https://i0.wp.com/directdevops.blog/wp-content/uploads/2025/07/k8s31.png?w=750&ssl=1)
+
+- Now lets try to mount a config map
+
+```
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-cm
+data:
+  MYSQL_ROOT_PASSWORD: qwerty456
+  MYSQL_DATABASE: sales
+  MYSQL_USER: ltdevops
+  MYSQL_PASSWORD: qwerty456
+```
+- Now lets try mounting config map as volume
+
+![image](https://i0.wp.com/directdevops.blog/wp-content/uploads/2025/07/k8s32.png?w=750&ssl=1)
+
+### Kubernetes cluster Administration
+- Lets install a kubeadm cluster with 3 nodes (2 worker), lets use weavenet and k8s version 1.31
+
+```
+sudo apt update
+sudo apt install -y curl gnupg2 software-properties-common apt-transport-https ca-certificates
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/docker.gpg
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+sudo apt update
+sudo apt install -y containerd.io
+containerd config default | sudo tee /etc/containerd/config.toml >/dev/null 2>&1
+sudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/g' /etc/containerd/config.toml
+sudo systemctl restart containerd
+sudo systemctl enable containerd
+sudo apt-get update
+# apt-transport-https may be a dummy package; if so, you can skip that package
+sudo apt-get install -y apt-transport-https ca-certificates curl gpg
+# If the directory `/etc/apt/keyrings` does not exist, it should be created before the curl command, read the note below.
+# sudo mkdir -p -m 755 /etc/apt/keyrings
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.31/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.31/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+sudo apt-get update
+sudo apt-get install -y kubelet kubeadm kubectl
+sudo apt-mark hold kubelet kubeadm kubectl
+```
+
+### Usecase – Maintenance of a node in k8s cluster
+- Now create some pods (use existing rs)
+
+![image](https://i0.wp.com/directdevops.blog/wp-content/uploads/2025/07/k8s33.png?w=750&ssl=1)
+
+- Pods are running on node 1 & node 2
+- Lets assume we need to bring node 1 down, for some maintenace
+- [Cordon](https://kubernetes.io/docs/reference/kubectl/generated/kubectl_cordon/) -> [drain](https://kubernetes.io/docs/tasks/administer-cluster/safely-drain-node/) -> [uncordon](https://kubernetes.io/docs/reference/kubectl/generated/kubectl_uncordon/)
+
+### Backing up k8s cluster
+- Commands on master node
+```
+sudo apt install etcd-client
+ETCDCTL_API=3 etcdctl \
+  --endpoints=https://127.0.0.1:2379 \
+  --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+  --cert=/etc/kubernetes/pki/etcd/server.crt \
+  --key=/etc/kubernetes/pki/etcd/server.key \
+  snapshot save /opt/etcd.db
+ETCDCTL_API=3 etcdctl --write-out=table snapshot status /opt/etcd.db
+```
+
+### Upgrading kubernetes cluster
+- Ensure a backup of k8s cluster is captured before upgrade.
+- To upgrade a Kubernetes cluster created with kubeadm, follow these steps in order on each node type (control plane and worker). Adapt version numbers as per your requirements and available upgrades.
+
+#### 1. Upgrade kubeadm on All Nodes
+- First, upgrade kubeadm to the desired version on all nodes (control plane and worker):
+```
+sudo apt-mark unhold kubeadm
+sudo apt-get update
+sudo apt-get install -y kubeadm=1.32.6
+sudo apt-mark hold kubeadm
+kubeadm version
+
+
+Replace ` with the specific version, e.g.,1.33.x-or1.29.3-1.1[1][2].*
+<h3>2. Check the Upgrade Plan (on First Control Plane)</h3>
+On the <strong>first control plane node</strong>, check your upgrade options:
+<pre><code class="language-sh">sudo kubeadm upgrade plan
+</code></pre>
+Choose a version and take note of the upgrade path suggested by the tool[1][2].
+<h3>3. Apply the Upgrade (First Control Plane Node)</h3>
+Apply the upgrade to the control plane:
+<pre><code class="language-sh">sudo kubeadm upgrade apply v
+</code></pre>
+Example:
+<pre><code class="language-sh">sudo kubeadm upgrade apply v1.33.x
+</code></pre>
+This upgrades control plane components, CoreDNS, kube-proxy, and manages certificates[1][2][3][6].
+<h3>4. Upgrade Other Control Plane Nodes</h3>
+On <em>other</em> control plane nodes:
+<pre><code class="language-sh">sudo kubeadm upgrade node
+</code></pre>
+This upgrades static pod manifests and related configurations on each additional control plane node[1][6].
+<h3>5. Drain and Upgrade Worker Nodes</h3>
+On <em>each worker node</em>:
+<ul>
+<li><strong>Drain workloads</strong>:
+<code>sh
+kubectl drain --ignore-daemonsets</code></li>
+<li><strong>Upgrade kubeadm</strong> (already done in step 1).</li>
+<li><strong>Upgrade nodeâ€™s configuration</strong>:
+<code>sh
+sudo kubeadm upgrade node</code></li>
+</ul>
+<h3>6. Upgrade kubelet and kubectl on Each Node</h3>
+On <strong>every node</strong> after control plane is upgraded:
+<pre><code class="language-sh">sudo apt-mark unhold kubelet kubectl
+sudo apt-get update
+sudo apt-get install -y kubelet= kubectl=
+sudo apt-mark hold kubelet kubectl
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
+</code></pre>
+<em>Replace <code>` as needed (e.g.,</code>1.33.x-</em>)*[2][6].
+```
+
+
+#### 7. Uncordon Drain Nodes
+- Once upgrade and restart are complete, uncordon the node to allow scheduling again:
+
+- kubectl uncordon 
+- Check all node statuses with:
+
+- kubectl get nodes
+
+#### Notes:
+- Always consult the Kubernetes official documentation for your target version before upgrades[1].
+- Backup your etcd data before starting.
+- The process is similar for Ubuntu and other platforms using APT. For RPM-based systems, use the corresponding package manager[1].
+- These are the canonical kubeadm upgrade commands and workflow for safely upgrading Kubernetes clusters managed by kubeadm[1][2][6].
+
+```
+[1] https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-upgrade/
+[2] https://devopscube.com/upgrade-kubernetes-cluster-kubeadm/
+[3] https://man.archlinux.org/man/kubeadm-upgrade-apply.1.en
+[4] https://en.opensuse.org/Kubic:Upgrading_kubeadm_clusters
+[5] https://cjyabraham.gitlab.io/docs/reference/setup-tools/kubeadm/kubeadm-upgrade/
+[6] https://itgix.com/blog/upgrading-a-kubernetes-cluster-by-using-kubeadm/
+[7] https://komodor.com/learn/kubernetes-upgrade-how-to-do-it-yourself-step-by-step/
+```
